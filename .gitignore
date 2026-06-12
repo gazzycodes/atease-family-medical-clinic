@@ -1,0 +1,16 @@
+# Local helper scripts (not part of the website)
+push.bat
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Temp / build artifacts
+*.log
+_preview.json
+_inlined.json
+_synctest.txt
+node_modules/
