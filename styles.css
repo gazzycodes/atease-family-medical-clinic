@@ -199,6 +199,29 @@ ul{list-style:none}
 .scard::after{content:"";position:absolute;left:0;bottom:-1px;height:2px;width:0;background:var(--clay);transition:width .35s var(--ease)}
 .scard:hover::after{width:100%}
 
+/* virtual-visit components */
+.vsteps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:clamp(40px,5vw,56px)}
+.vstep{background:var(--paper);border:1px solid var(--line-soft);border-radius:18px;padding:26px 24px;transition:transform .3s var(--ease),box-shadow .3s}
+.vstep:hover{transform:translateY(-4px);box-shadow:var(--shadow-sm)}
+.vstep__n{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--forest);color:var(--bone-2);font-family:var(--display);font-weight:600;font-size:1.05rem;margin-bottom:16px}
+.vstep h4{font-family:var(--display);font-weight:600;font-size:1.14rem;color:var(--ink);margin-bottom:6px}
+.vstep p{font-size:.92rem;color:var(--ink-soft)}
+
+.vsub{font-family:var(--display);font-weight:600;font-size:clamp(1.3rem,2.4vw,1.6rem);color:var(--ink);text-align:center;margin:0 0 26px}
+
+.vnotes{margin-top:26px;background:var(--bone-2);border:1px solid var(--line-soft);border-radius:18px;padding:24px 26px}
+.vnotes__title{font-family:var(--display);font-weight:600;font-size:1.08rem;color:var(--ink);margin-bottom:12px}
+.vnotes ul{display:grid;gap:9px}
+.vnotes li{position:relative;padding-left:22px;color:var(--ink-soft);font-size:.95rem}
+.vnotes li::before{content:"";position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;background:var(--moss)}
+
+.emergency{display:flex;gap:15px;align-items:flex-start;margin-top:18px;
+  background:var(--clay-tint);border:1px solid rgba(199,91,57,.35);border-left:4px solid var(--clay);
+  border-radius:16px;padding:18px 22px}
+.emergency__icon{color:var(--clay);flex:none;margin-top:1px}
+.emergency p{color:#6b3019;font-size:.95rem;line-height:1.55}
+.emergency strong{color:var(--clay-dark)}
+
 /* =========================================================
    INSURANCE
    ========================================================= */
@@ -342,6 +365,7 @@ ul{list-style:none}
 /* large phone / small tablet */
 @media (max-width:760px){
   .section{padding:clamp(56px,12vw,92px) 0}
+  .vsteps{grid-template-columns:1fr;gap:14px}
   .ins-grid{grid-template-columns:1fr 1fr}
   .services__grid{grid-template-columns:repeat(2,1fr)}
   .scard:last-child:nth-child(odd){grid-column:1/-1}

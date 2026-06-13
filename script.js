@@ -4,42 +4,42 @@
 (function () {
   "use strict";
 
-  /* ---------- Data ---------- */
-  // Custom inline SVG icons (24x24, currentColor, line style)
+  /* ---------- Icons (24x24, line style, currentColor) ---------- */
   const I = {
+    pill: '<path d="M4.8 12.5l7.7-7.7a4.6 4.6 0 016.5 6.5l-7.7 7.7a4.6 4.6 0 01-6.5-6.5z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.6 8.6l6.5 6.5" stroke="currentColor" stroke-width="1.7"/>',
     chronic: '<path d="M3 13h3l2 5 4-12 2 7h2l1.5-2H22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
-    diabetes: '<path d="M12 3s6.5 7 6.5 11.5A6.5 6.5 0 015.5 14.5C5.5 10 12 3 12 3z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 13.5l4.5-2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
-    women: '<circle cx="12" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 13v8M9 18h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
-    ibs: '<path d="M7 4a2.5 2.5 0 012.5 2.5v1a2.5 2.5 0 005 0 2.5 2.5 0 015 0v6a4.5 4.5 0 01-4.5 4.5h-1a3.5 3.5 0 01-3.5-3.5v-1a2.5 2.5 0 00-5 0 2.5 2.5 0 01-2.5-2.5v-4A2.5 2.5 0 017 4z" fill="none" stroke="currentColor" stroke-width="1.6"/>',
-    thyroid: '<path d="M8 4c0 2-2 3-2 6 0 3 2.7 5 6 5s6-2 6-5c0-3-2-4-2-6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 9v6M9 18h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
-    asthma: '<path d="M7 11a4 4 0 014-4h0a3 3 0 003-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M11 13v7M8 16l-1.5 4M15 14l1.5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
-    arthritis: '<path d="M7 3v6l2.5 2.5L12 9V6M7 9a2 2 0 00-4 0v3a6 6 0 006 6 6 6 0 006-6V6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
-    weight: '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 12l3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/>',
     infection: '<circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M6 6l2 2m8 8l2 2M18 6l-2 2M8 16l-2 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+    asthma: '<path d="M12 4v7M9 11c0 4-1.5 7-4 7-1.2 0-2-.8-2-2 0-3 1.5-6 3-8m6 3c0 4 1.5 7 4 7 1.2 0 2-.8 2-2 0-3-1.5-6-3-8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    ear: '<path d="M8.5 9a3.5 3.5 0 117 0c0 2-2 2.6-2 4.5a2.5 2.5 0 01-5 .2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M10.6 9.2a1.5 1.5 0 012.8.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    droplet: '<path d="M12 3.6s6 6.4 6 10.4a6 6 0 01-12 0c0-4 6-10.4 6-10.4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+    eye: '<path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/>',
     skin: '<path d="M5 5h11l3 3v11a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 11c1.3 1.3 3.7 1.3 5 0M9 9h.01M14 9h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-    std: '<path d="M12 3l8 3.5v5C20 17 16.4 21 12 22 7.6 21 4 17 4 11.5v-5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v4m0 3v.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
-    hypertension: '<path d="M12 20s-7-4.3-9-8.5C1.8 8.4 3.2 5.5 6 5.5c1.8 0 3.1 1 4 2.3 .9-1.3 2.2-2.3 4-2.3 2.8 0 4.2 2.9 3 6C19 15.7 12 20 12 20z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5 12h2.5l1.5-2.5 2 4 1.5-2.5H19" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>',
-    depression: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 15c1-1.6 5-1.6 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M9 10h.01M15 10h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
-    anxiety: '<path d="M12 3a6.5 6.5 0 00-6.5 6.5c0 1.8 1 3.2 1 4.5v3a1.8 1.8 0 001.8 1.8h7.4a1.8 1.8 0 001.8-1.8v-3c0-1.3 1-2.7 1-4.5A6.5 6.5 0 0012 3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 9.5c.6-.6 1.6-.6 2.2 0M12.3 9.5c.6-.6 1.6-.6 2.2 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
-    acute: '<path d="M4 12h4l2-5 3 10 2-5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    head: '<path d="M16 20v-2.2a6 6 0 10-8 0V20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 8.4l-1.7 2.7h2.5L11.1 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    ibs: '<path d="M7 4a2.5 2.5 0 012.5 2.5v1a2.5 2.5 0 005 0 2.5 2.5 0 015 0v6a4.5 4.5 0 01-4.5 4.5h-1a3.5 3.5 0 01-3.5-3.5v-1a2.5 2.5 0 00-5 0 2.5 2.5 0 01-2.5-2.5v-4A2.5 2.5 0 017 4z" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+    weight: '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 12l3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/>',
+    women: '<circle cx="12" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 13v8M9 18h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+    heart: '<path d="M12 20s-7-4.5-9.2-9C1.4 8.2 3 5 6.2 5c1.9 0 3.3 1.1 4.3 2.5C11.5 6.1 12.9 5 14.8 5 18 5 19.6 8.2 18.2 11c-2.2 4.5-9.2 9-9.2 9z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+    lab: '<path d="M9.5 3h5M11 3v6L6.2 16.6A2 2 0 008 19.6h8a2 2 0 001.8-3L13 9V3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.5 14h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    mind: '<path d="M12 3a6.5 6.5 0 00-6.5 6.5c0 1.8 1 3.2 1 4.5v3a1.8 1.8 0 001.8 1.8h7.4a1.8 1.8 0 001.8-1.8v-3c0-1.3 1-2.7 1-4.5A6.5 6.5 0 0012 3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 9.5c.6-.6 1.6-.6 2.2 0M12.3 9.5c.6-.6 1.6-.6 2.2 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
   };
 
+  /* ---------- What we treat online (virtual visits) ---------- */
   const services = [
-    { t: "Acute Medical Conditions", d: "Fast care for sudden illness & injury", i: "acute" },
-    { t: "Chronic Conditions", d: "Ongoing management & support", i: "chronic" },
-    { t: "Diabetes Mellitus", d: "Blood-sugar & lifestyle care", i: "diabetes" },
-    { t: "Women's Health", d: "Wellness across every stage", i: "women" },
-    { t: "Irritable Bowel Syndrome", d: "Digestive symptom relief", i: "ibs" },
-    { t: "Thyroid Disorders", d: "Hormone testing & treatment", i: "thyroid" },
-    { t: "Asthma", d: "Breathing & airway management", i: "asthma" },
-    { t: "Arthritis", d: "Joint pain & mobility care", i: "arthritis" },
-    { t: "Weight Management", d: "Sustainable, guided plans", i: "weight" },
-    { t: "Infections", d: "Respiratory, ear & eye care", i: "infection" },
-    { t: "Minor Skin Disorders", d: "Rashes, irritation & more", i: "skin" },
-    { t: "STD Testing & Care", d: "Confidential & judgment-free", i: "std" },
-    { t: "Hypertension", d: "Blood-pressure monitoring", i: "hypertension" },
-    { t: "Depression", d: "Compassionate mental-health care", i: "depression" },
-    { t: "Anxiety", d: "Support, screening & treatment", i: "anxiety" },
+    { t: "Medication Refills & Management", d: "Ongoing meds · no controlled substances", i: "pill" },
+    { t: "Chronic Condition Follow-ups", d: "Stable blood pressure, diabetes, thyroid & more", i: "chronic" },
+    { t: "Cold, Flu & COVID-19", d: "Upper-respiratory & viral symptoms", i: "infection" },
+    { t: "Allergies & Sinus", d: "Seasonal allergies & sinus infections", i: "asthma" },
+    { t: "Cough, Sore Throat & Ear Pain", d: "Throat & ear discomfort", i: "ear" },
+    { t: "UTI Symptoms", d: "Urinary tract infections", i: "droplet" },
+    { t: "Pink Eye", d: "Conjunctivitis & eye irritation", i: "eye" },
+    { t: "Minor Skin Conditions", d: "Rashes, eczema, acne & insect bites", i: "skin" },
+    { t: "Headaches & Migraines", d: "Relief & ongoing management", i: "head" },
+    { t: "Mild GI Symptoms", d: "Heartburn, nausea, diarrhea, constipation", i: "ibs" },
+    { t: "Weight Management", d: "Guided consultations", i: "weight" },
+    { t: "Women's Health", d: "Menopause & hormone-therapy follow-ups", i: "women" },
+    { t: "Birth Control", d: "Counseling & refills", i: "heart" },
+    { t: "Lab Review & Results", d: "Understand your test results", i: "lab" },
+    { t: "Mental Health", d: "Anxiety, depression, stress & insomnia", i: "mind" },
   ];
 
   const insurers = [
@@ -63,7 +63,7 @@
       return (
         '<article class="scard reveal" style="transition-delay:' + (n % 5) * 45 + 'ms">' +
           '<span class="scard__num">' + num + '</span>' +
-          '<span class="scard__icon"><svg viewBox="0 0 24 24" width="28" height="28">' + (I[s.i] || I.acute) + '</svg></span>' +
+          '<span class="scard__icon"><svg viewBox="0 0 24 24" width="28" height="28">' + (I[s.i] || I.pill) + '</svg></span>' +
           '<h3 class="scard__title">' + s.t + '</h3>' +
           '<p class="scard__desc">' + s.d + '</p>' +
         '</article>'
@@ -163,7 +163,7 @@
 
   const note = document.getElementById("bookNote");
   if (note && !ATHENA_BOOKING_URL) {
-    note.textContent = "Online scheduling is being connected. Call 214-513-0839 to book in the meantime.";
+    note.textContent = "Online scheduling is being connected. Call 214-513-0839 to book a virtual visit in the meantime.";
   }
 
   function smoothTo(sel) {
