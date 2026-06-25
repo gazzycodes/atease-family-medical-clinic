@@ -163,7 +163,7 @@
 
   const note = document.getElementById("bookNote");
   if (note && !ATHENA_BOOKING_URL) {
-    note.textContent = "Online scheduling is being connected. Call 214-513-0839 to book a virtual visit in the meantime.";
+    note.textContent = "Online scheduling is being connected. Call 682-297-4097 to book a virtual visit in the meantime.";
   }
 
   function smoothTo(sel) {
