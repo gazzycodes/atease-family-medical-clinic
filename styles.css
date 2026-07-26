@@ -263,7 +263,7 @@ ul{list-style:none}
    ABOUT
    ========================================================= */
 .about{background:var(--bone)}
-.about__inner{display:grid;grid-template-columns:.82fr 1.18fr;gap:clamp(36px,5vw,76px);align-items:center}
+.about__inner{display:grid;grid-template-columns:1fr;gap:clamp(36px,5vw,76px);align-items:center;max-width:860px}
 .about__visual{display:flex;justify-content:center}
 .provider-card{position:relative;width:100%;max-width:330px;text-align:center;
   background:var(--paper);border:1px solid var(--line-soft);border-radius:var(--r-lg);padding:36px 30px;box-shadow:var(--shadow)}

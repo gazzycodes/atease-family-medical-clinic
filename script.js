@@ -43,12 +43,9 @@
   ];
 
   const insurers = [
-    { n: "Medicare", a: "Mc" },
     { n: "BCBS of Texas", a: "BC" },
     { n: "United Healthcare", a: "UH" },
-    { n: "Medicaid", a: "Md" },
     { n: "Humana", a: "Hu" },
-    { n: "Ambetter / Superior", a: "AS" },
     { n: "Multiplan", a: "MP" },
     { n: "Oscar", a: "Os" },
     { n: "Aetna", a: "Ae" },
@@ -163,7 +160,7 @@
 
   const note = document.getElementById("bookNote");
   if (note && !ATHENA_BOOKING_URL) {
-    note.textContent = "Online scheduling is being connected. Call 682-297-4097 to book a virtual visit in the meantime.";
+    note.textContent = "Online scheduling is being connected. Call 682-297-3822 to book a virtual visit in the meantime.";
   }
 
   function smoothTo(sel) {
