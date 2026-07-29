@@ -14,3 +14,6 @@ _preview.json
 _inlined.json
 _synctest.txt
 node_modules/
+
+# Stale git lock files moved aside by tooling
+_to_delete/

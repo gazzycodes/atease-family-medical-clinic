@@ -3,7 +3,7 @@
 > Living handover document. Covers hosting, DNS, SSL, deployment, and the CharmHealth
 > booking integration research. Update this when anything infrastructural changes.
 >
-> Last updated: **26 July 2026**
+> Last updated: **29 July 2026**
 
 ---
 
@@ -85,6 +85,7 @@ causes `ERR_TOO_MANY_REDIRECTS` and takes the site down. The origin `.htaccess` 
 | Cloudflare account | Gazzyjuruj@gmail.com's Account |
 | Registrant email | AtEase0417@gmail.com |
 | Clinic phone | **682-297-3822** |
+| Clinic hours | Mon 8–5, Tue 12–5, Wed 10–6, Thu 8–6. Closed Fri/Sat/Sun |
 | Clinic email | info@ateasefamilymedicalclinic.com |
 | Address | 1301 Justin Rd, Ste 201 #5035, Lewisville, TX 75077 |
 
@@ -134,20 +135,21 @@ Covers everything without the $10/mo bot.
 Patient Portal URL lives at Settings → PHR Settings → **Patient Portal Embed**
 (`phr.charmtracker.com/login.sas` + practice-specific ID). Available today, no prerequisites.
 
-### Current blocker chain (as of 26 Jul 2026)
+### Blocker chain — step 1 now DONE
 
 ```
-Provider working hours NOT SET
-   └─► Online Appointments cannot be enabled
-          └─► Web Embed refuses to generate code
+Provider working hours  ✅ SET 29 Jul 2026
+   └─► Online Appointments  ← next step
+          └─► Web Embed code generation
 ```
 
-Charm states it explicitly: *"Please configure your working hours under 'Provider Timings'
-for enabling online appointment booking."*
+⚠️ **Gotcha found when setting the hours:** Tuesday had been entered as `12:00 am` instead of
+`12:00 pm`, which would have opened Tuesday bookings from midnight. Corrected and verified.
+Worth re-checking any future hours edits for the same am/pm slip.
 
-**To unblock — Settings → Calendar:**
+**Remaining steps — Settings → Calendar:**
 
-1. **Provider Timings** → Carol Kalu → Regular Working Hours → Configure Now ← *founder only*
+1. ~~**Provider Timings** → Regular Working Hours~~ ✅ done
 2. **Visit Types** → create telehealth visit types (durations + cash prices)
 3. **Visit Types → Visit Types For Providers** → Carol Kalu → assign them (currently none)
 4. **Online Appointments** → enable, choose approval mode
@@ -162,8 +164,8 @@ for enabling online appointment booking."*
 | Charm TeleHealth | ✅ **Enabled** for Carol Kalu, licensed TX ($20/provider/mo) |
 | Patient Portal Embed | ✅ Ready, unused |
 | Facility timings / timezone | ✅ US/Central |
-| Provider working hours | ❌ **Not set** — the blocker |
-| Provider visit types | ❌ None assigned |
+| Provider working hours | ✅ **Set** (29 Jul 2026) — Mon 8–5, Tue 12–5, Wed 10–6, Thu 8–6, Fri/Sat/Sun closed |
+| Provider visit types | ❌ None assigned — **now the blocker** |
 | Practice visit types | ⚠️ Only "Follow-up" (30 min) and "New Patient" (60 min), both **In Person** — contradicts a site selling virtual visits |
 | Online Appointments | ❌ Blocked |
 | Web Embed | ❌ Blocked |
@@ -197,6 +199,45 @@ into 3–4 price tiers.
 
 ---
 
+### Telehealth consent forms — Charm handles this natively
+
+**Texas requires informed consent before a telemedicine service.** It may be written or verbal,
+but **it must be documented in the patient's medical record**. Physicians/NPs must also provide
+the HIPAA notice of privacy practices and the Texas Medical Board complaint notice, and give
+guidance on appropriate follow-up care.
+
+**Charm has the whole mechanism built in — no development work required:**
+
+| Where | What it does |
+|---|---|
+| Settings → Questionnaires → Practice Questionnaires | Form type **"Consent Form"** is a first-class type alongside Questionnaire / Pre-screening / Feedback / New Patient |
+| Settings → Questionnaires → CharmHealth Library | Shared templates from other practices — **4 telehealth consent templates exist**: "Ascend Health Telehealth Consent", "Bhive Telehealth Consent", "LCpsych Telehealth Consent" (+ a copy). Can be copied and edited. |
+| Settings → Charm TeleHealth → Preferences → **Consent Forms** | *"Mandate patients to fill the consent forms prior joining the telehealth session"* — hard gate before video starts |
+| Settings → Charm TeleHealth → Preferences → **Custom Terms Of Service** | Show custom ToS to patients. Currently **not configured** (`TELE_TOS_CONFIGURED = false`) |
+| Settings → Charm TeleHealth → Preferences → **Telehealth Disclaimer Statement** | Adds a disclaimer to the consultation summary shared with patients |
+| Pre-appointment questionnaires | Consent forms can be attached at booking and completed via the patient portal before the visit; the provider is notified when submitted |
+
+**Status:** the practice has 3 questionnaires (New Patient Adult Intake, Patient Details,
+Pediatric Questionnaire) and **no consent form yet**.
+
+**Division of labour:**
+
+- **Developer:** nothing. Do *not* put a consent form on the marketing website — it would collect
+  PHI on a site with no BAA, produce no signed record in the chart, and satisfy no legal
+  requirement. Consent belongs inside Charm, which is covered by their BAA.
+- **Founder + her attorney or malpractice carrier:** owns the *wording*. The library templates
+  are other practices' forms — a starting point, not legal advice, and not vetted for AtEase.
+  Her malpractice carrier will usually review consent language for free.
+- **Either of us:** the mechanical setup in Charm once the approved text exists.
+
+**What the consent should cover** (for the attorney's checklist, not as legal advice): the nature
+and limits of telehealth, that a video visit may not substitute for in-person care, technology
+failure and what happens then, privacy/security and its limits, that no controlled substances are
+prescribed, emergency instructions (call 911), how to obtain follow-up care, financial
+responsibility, and the patient's right to withdraw consent.
+
+---
+
 ## 5. Compliance flags — raise with the founder / their biller
 
 - **Good Faith Estimate (No Surprises Act)** — self-pay patients are entitled to a written
@@ -220,11 +261,13 @@ into 3–4 price tiers.
 | Item | Owner | Priority |
 |---|---|---|
 | Expired card ending **9567** on the Network Solutions account — domain, hosting *and* Google Workspace all auto-renew on it | Founder | 🔴 High |
-| Carol's working hours in Charm | Founder | 🔴 High — blocks booking |
+| ~~Carol's working hours in Charm~~ ✅ done 29 Jul 2026 | — | — |
+| Assign visit types to Carol in Charm (none assigned — now the blocker) | Founder/Dev | 🔴 High |
+| Create a telehealth consent form in Charm (see §5) | Founder + attorney | 🔴 High — legally required in TX |
 | Cash prices per visit type | Founder | 🟠 Medium |
 | Bluefin merchant application (5–10 business days) | Founder | 🟠 Medium — start early, blocks nothing |
 | SPF + DMARC records (still absent) | Dev | 🟠 Medium |
-| Confirm clinic hours ("subject to confirmation" on site) | Founder | 🟠 Medium |
+| ~~Confirm clinic hours~~ ✅ confirmed and published 29 Jul 2026 | — | — |
 | Wire up Web Embed + Patient Portal link once unblocked | Dev | — |
 | Set GitHub repo back to private (made public to enable deployment) | Dev | 🟢 Low |
 | Remove leftover Network Solutions placeholder files from `/htdocs/` (`uc-page.css`, `new-netsol-logo.png`, `icon-61-warning-128.png`, `netsol-favicon.ico`) | Dev | 🟢 Low |
@@ -266,7 +309,7 @@ rather than setting this constant.
 
 ### Remaining placeholder
 
-- Clinic hours in the Contact section still say *"Hours subject to confirmation"*
+- None. Provider card and unconfirmed hours both resolved 29 Jul 2026.
 
 *(The `[ Provider Name ], FNP-C` card was removed from the About section on 26 Jul 2026. The
 `.provider-card` / `.about__visual` CSS remains in `styles.css` — unused but kept so the card is
