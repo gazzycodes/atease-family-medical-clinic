@@ -17,3 +17,6 @@ node_modules/
 
 # Stale git lock files moved aside by tooling
 _to_delete/
+
+# Clinic legal/consent documents - internal, not for the public repo
+consent and disclaimers/

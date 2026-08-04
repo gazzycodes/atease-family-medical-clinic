@@ -3,7 +3,7 @@
 > Living handover document. Covers hosting, DNS, SSL, deployment, and the CharmHealth
 > booking integration research. Update this when anything infrastructural changes.
 >
-> Last updated: **29 July 2026**
+> Last updated: **4 August 2026**
 
 ---
 
@@ -238,6 +238,71 @@ responsibility, and the patient's right to withdraw consent.
 
 ---
 
+## 4b. Cash pricing — canonical list
+
+Published on the website (`index.html` → `#pricing`) **and** to be mirrored as Charm visit-type
+charges. **If one changes, change both** — they will drift otherwise.
+
+| Visit type | Price | Charm duration | Source range |
+|---|---|---|---|
+| New Patient Telehealth Visit | **$99** | 45 min | 30–45 min |
+| Established Follow-up & Medication Management | **$65** | 20 min | 15–20 min |
+| Simple Prescription Refill | **$40** | 15 min | — |
+| Annual Wellness Telehealth Consultation | **$125** | 45 min | — |
+| Weight Management Follow-up | **$60** | 20 min | — |
+
+Durations take the **longer** end of each stated range so slots don't overrun. Charm requires a
+single fixed duration per visit type — it does not accept ranges.
+
+Site copy states prices cover the consultation only; labs, imaging, medications and referrals are
+billed separately, and self-pay patients may request a Good Faith Estimate.
+
+---
+
+## 4c. Patient-facing documents
+
+Source PDFs live in `consent and disclaimers/` — **gitignored**, never commit them (repo is public).
+
+| Document | Where it goes | Status |
+|---|---|---|
+| Notice of Privacy Practices (HIPAA) | Website `policies.html` + Charm acknowledgement | ⚠️ **Effective date blank** |
+| Financial Policy | Website `policies.html` + Charm acknowledgement | ⚠️ Fee amounts blank |
+| Cancellation & No-Show Policy | Website `policies.html` + Charm acknowledgement | ⚠️ Fee amount blank |
+| Telemedicine Consent | Charm only (signed) | See gaps below |
+| General Consent for Treatment | Charm only (signed) | OK |
+| Authorization to Communicate | Charm only (signed) | OK |
+| GLP-1 Weight Management Consent | Charm only (signed), conditional | See note below |
+
+**Split rule:** public policy text goes on the website (read-only, no PHI, no signature).
+Anything requiring a signature lives in Charm, which is covered by their BAA. **Never** build a
+signature or acknowledgement form on the marketing site.
+
+### Review gaps flagged to the founder's attorney (4 Aug 2026)
+
+Telemedicine Consent is missing:
+
+1. **Patient-location clause** — the biggest one. Carol is licensed in **Texas only**. The consent
+   should require the patient to be physically in Texas at the time of the visit and to confirm
+   their location each session.
+2. **Controlled substances** — the website says they won't be prescribed virtually; the consent is
+   silent. Make them match.
+3. Right to withdraw consent / switch to in-person.
+4. Guidance on appropriate follow-up care (Texas requires this).
+5. Texas Medical Board complaint notice (TMB requires it be provided).
+6. Note that insurance coverage for telehealth varies by plan.
+7. No effective date, version, or provider name line.
+
+GLP-1 Consent is thorough (contraindications, side effects, compounded-medication disclosure).
+Minor notes: it lists **BPC-157** in the allergy section, which suggests it was adapted from a
+practice also offering peptide therapy — probably should be removed; it doesn't mention that GLP-1s
+are usually **not covered by insurance** for weight loss; and there's no provider attestation line.
+
+⚠️ Compounded GLP-1 prescribing and advertising is a live regulatory area. Decide deliberately
+whether to promote it on the website — currently the site says only "Weight Management — guided
+consultations", which is a safe framing.
+
+---
+
 ## 5. Compliance flags — raise with the founder / their biller
 
 - **Good Faith Estimate (No Surprises Act)** — self-pay patients are entitled to a written
@@ -262,8 +327,11 @@ responsibility, and the patient's right to withdraw consent.
 |---|---|---|
 | Expired card ending **9567** on the Network Solutions account — domain, hosting *and* Google Workspace all auto-renew on it | Founder | 🔴 High |
 | ~~Carol's working hours in Charm~~ ✅ done 29 Jul 2026 | — | — |
-| Assign visit types to Carol in Charm (none assigned — now the blocker) | Founder/Dev | 🔴 High |
-| Create a telehealth consent form in Charm (see §5) | Founder + attorney | 🔴 High — legally required in TX |
+| Create 5 telehealth visit types + assign to Carol (see §4b) | Dev — needs Charm unlocked | 🔴 High — last booking blocker |
+| Load consent forms into Charm + enable the telehealth consent gate | Dev — needs Charm unlocked | 🔴 High |
+| **Missed appointment fee amount** — blank in Financial Policy, Cancellation Policy and on `policies.html` | Founder | 🟠 Deferred, agreed 4 Aug |
+| **HIPAA notice effective date** — blank; `policies.html` shows a visible "to be confirmed" marker | Founder | 🟠 Fix before promoting the policies page |
+| Attorney review of consent docs (see §4c gaps) | Founder | 🟠 Medium |
 | Cash prices per visit type | Founder | 🟠 Medium |
 | Bluefin merchant application (5–10 business days) | Founder | 🟠 Medium — start early, blocks nothing |
 | SPF + DMARC records (still absent) | Dev | 🟠 Medium |
