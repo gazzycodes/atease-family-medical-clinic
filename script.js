@@ -134,33 +134,88 @@
   if (yEl) yEl.textContent = new Date().getFullYear();
 
   /* =========================================================
-     ATHENAONE BOOKING INTEGRATION HOOK
+     CHARMHEALTH BOOKING INTEGRATION
      ---------------------------------------------------------
-     Every booking button carries  data-athena-book.
-     When AthenaOne provides the online-scheduling URL, set
-     ATHENA_BOOKING_URL below and every button points to it.
-     ========================================================= */
-  const ATHENA_BOOKING_URL = ""; // e.g. "https://schedule.athenahealth.com/..."
+     URLs live in clinic-config.js (window.ATEASE) — nothing here
+     needs editing when Charm settings change.
 
-  document.querySelectorAll("[data-athena-book]").forEach(function (el) {
-    if (ATHENA_BOOKING_URL) {
-      el.setAttribute("href", ATHENA_BOOKING_URL);
-      el.setAttribute("target", "_blank");
-      el.setAttribute("rel", "noopener");
+       [data-book-cta]     -> opens the inline Charm scheduler
+       [data-portal-link]  -> Charm Patient Portal (new tab)
+
+     Behaviour:
+       • CHARM_EMBED_URL set   -> scheduler expands inline in #book
+       • only CHARM_PORTAL_URL -> scheduler falls back to the portal
+       • neither               -> scrolls to #book and shows the phone
+     ========================================================= */
+  const CFG    = window.ATEASE || {};
+  const EMBED  = String(CFG.CHARM_EMBED_URL || "").trim();
+  const PORTAL = String(CFG.CHARM_PORTAL_URL || "").trim();
+  const PHONE  = String(CFG.PHONE_DISPLAY || "682-297-3822");
+
+  /* ---- Patient Portal links ---- */
+  document.querySelectorAll("[data-portal-link]").forEach(function (el) {
+    if (PORTAL) {
+      el.setAttribute("href", PORTAL);
     } else {
-      el.addEventListener("click", function (ev) {
-        const href = el.getAttribute("href");
-        if (!href || href === "#") {
-          ev.preventDefault();
-          smoothTo("#book");
-        }
-      });
+      el.setAttribute("hidden", "hidden");
     }
   });
 
+  /* ---- Scheduler ---- */
+  const schedWrap  = document.getElementById("scheduler");
+  const schedFrame = document.getElementById("schedulerFrame");
+  const schedClose = document.getElementById("schedulerClose");
+
+  function mountScheduler() {
+    if (!schedFrame || schedFrame.querySelector("iframe")) return;
+    const f = document.createElement("iframe");
+    f.setAttribute("src", EMBED);
+    f.setAttribute("title", "Book an appointment with AtEase Family Medical Clinic");
+    f.setAttribute("loading", "lazy");
+    f.setAttribute("allow", "clipboard-write");
+    f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    schedFrame.appendChild(f);
+  }
+
+  function openScheduler() {
+    if (EMBED && schedWrap) {
+      mountScheduler();
+      schedWrap.hidden = false;
+      window.setTimeout(function () { smoothTo("#scheduler"); }, 40);
+    } else if (PORTAL) {
+      window.open(PORTAL, "_blank", "noopener");
+    } else {
+      smoothTo("#book");
+    }
+  }
+
+  if (schedClose && schedWrap) {
+    schedClose.addEventListener("click", function () {
+      schedWrap.hidden = true;
+      smoothTo("#book");
+    });
+  }
+
+  document.querySelectorAll("[data-book-cta]").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      openScheduler();
+    });
+  });
+
+  /* ---- Helper copy under the booking buttons ---- */
   const note = document.getElementById("bookNote");
-  if (note && !ATHENA_BOOKING_URL) {
-    note.textContent = "Online scheduling is being connected. Call 682-297-3822 to book a virtual visit in the meantime.";
+  if (note) {
+    if (EMBED) {
+      note.textContent =
+        "Pick a visit type and a time — it takes about a minute. New patient requests are confirmed by our team, usually the same business day.";
+    } else if (PORTAL) {
+      note.textContent =
+        "Scheduling opens in our secure CharmHealth patient portal. Prefer to talk to someone? Call " + PHONE + ".";
+    } else {
+      note.textContent =
+        "Online scheduling is being connected. Call " + PHONE + " to book a virtual visit in the meantime.";
+    }
   }
 
   function smoothTo(sel) {

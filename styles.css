@@ -98,7 +98,11 @@ ul{list-style:none}
 .nav__inner{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 clamp(22px,5vw,46px);
   display:flex;align-items:center;justify-content:space-between;gap:20px;position:relative;z-index:120}
 .brand{display:flex;align-items:center;gap:13px}
-.brand__mark{display:flex}
+.brand__mark{display:flex;align-items:center}
+.brand__mark img{display:block;width:auto;height:46px}
+.brand--light .brand__mark{background:var(--bone-2);border-radius:14px;padding:6px 7px}
+.brand--light .brand__mark img{height:36px}
+@media (max-width:640px){.brand__mark img{height:40px}}
 .brand__text{display:flex;flex-direction:column;line-height:1.04}
 .brand__name{font-family:var(--display);font-weight:600;font-size:1.4rem;color:var(--forest);letter-spacing:-.01em}
 .brand__sub{font-size:.64rem;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);font-weight:600;margin-top:2px}
@@ -349,7 +353,7 @@ ul{list-style:none}
 /* tablet */
 @media (max-width:980px){
   .nav__links{display:none}
-  .nav__actions .nav__book,.nav__actions .nav__phone{display:none}
+  .nav__actions .nav__book,.nav__actions .nav__phone,.nav__actions .nav__portal{display:none}
   .nav__toggle{display:flex}
   .hero__inner{grid-template-columns:1fr;gap:40px}
   .hero__content{order:0}
@@ -479,3 +483,48 @@ ul{list-style:none}
 .doc__back{margin-top:40px;padding-top:24px;border-top:1px solid var(--line)}
 .doc__back a{color:var(--forest);font-weight:600}
 .doc__back a:hover{color:var(--clay)}
+
+
+/* =========================================================
+   PATIENT PORTAL LINK (nav)
+   ========================================================= */
+.nav__portal{display:inline-flex;align-items:center;font-weight:600;font-size:.92rem;
+  color:var(--forest);padding:8px 14px;border:1px solid var(--line);border-radius:999px;
+  transition:border-color .25s var(--ease),color .25s var(--ease),background .25s var(--ease)}
+.nav__portal:hover{color:var(--clay);border-color:rgba(199,91,57,.45);background:var(--clay-tint)}
+
+/* =========================================================
+   CHARMHEALTH SCHEDULER (inline booking widget)
+   ========================================================= */
+.book__portal{flex-basis:100%;margin-top:10px;font-size:.92rem;color:rgba(251,247,239,.82)}
+.book__portal a{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.book__portal a:hover{color:var(--bone-2);opacity:.85}
+
+.scheduler{flex-basis:100%;margin-top:28px;background:var(--bone-2);border-radius:20px;
+  overflow:hidden;box-shadow:0 34px 60px -32px rgba(20,10,4,.55);animation:schedIn .35s var(--ease) both}
+@keyframes schedIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.scheduler__bar{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:12px 18px;background:var(--forest);color:var(--bone-2)}
+.scheduler__label{display:inline-flex;align-items:center;gap:8px;font-size:.88rem;font-weight:600;
+  letter-spacing:.01em;color:rgba(251,247,239,.92)}
+.scheduler__close{background:rgba(251,247,239,.14);border:1px solid rgba(251,247,239,.3);
+  color:var(--bone-2);font:inherit;font-size:.84rem;font-weight:600;padding:6px 14px;
+  border-radius:999px;cursor:pointer;transition:background .2s var(--ease)}
+.scheduler__close:hover{background:rgba(251,247,239,.26)}
+
+.scheduler__frame{background:#fff;min-height:620px}
+.scheduler__frame iframe{display:block;width:100%;height:1000px;border:0}
+
+.scheduler__fine{padding:14px 18px 18px;margin:0;font-size:.84rem;color:var(--ink-soft);
+  background:var(--bone-2);border-top:1px solid var(--line-soft)}
+
+@media (max-width:640px){
+  .scheduler__frame{min-height:520px}
+  .scheduler__frame iframe{height:1180px}
+}
+
+/* keep the nav from crowding on narrow desktops — portal stays in the drawer */
+@media (max-width:1180px){
+  .nav__actions .nav__portal{display:none}
+}
