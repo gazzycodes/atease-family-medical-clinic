@@ -35,10 +35,9 @@ window.ATEASE = {
   PHONE_TEL: "6822973822",
 
   /* Missed / late-cancelled appointment fee.
-     DEFERRED — awaiting the amount from the practice owner.
-     Set to a number (e.g. 35) to publish it automatically on
-     policies.html; leave null to keep the "to be confirmed" wording. */
-  MISSED_APPOINTMENT_FEE: null,
+     Confirmed by the practice owner 7 Aug 2026. Publishes itself on
+     policies.html; set back to null to hide the amount again. */
+  MISSED_APPOINTMENT_FEE: 25,
 
   /* Hours before an appointment that a cancellation becomes billable. */
   CANCELLATION_WINDOW_HOURS: 24

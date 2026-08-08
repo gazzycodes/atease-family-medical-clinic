@@ -3,7 +3,7 @@
 > Living handover document. Covers hosting, DNS, SSL, deployment, and the CharmHealth
 > booking integration research. Update this when anything infrastructural changes.
 >
-> Last updated: **4 August 2026**
+> Last updated: **8 August 2026**
 
 ---
 
@@ -516,6 +516,41 @@ seeing nothing after booking.
 Charm will likely reject the duplicate. She needs to pick the address and Charm support may need
 to move the login.
 
+### Verified 6 Aug 2026 (post-deploy re-check)
+
+| Setting | Reads |
+|---|---|
+| `NEED_INVITATION` (PHR invitation required) | ✅ `true` — persisted |
+| PHR Modules | ✅ Visit Summary, Appointments, Billing, **Questionnaire**, Announcements, Messages all ON |
+| PHR Modules → Clinical Summary | ❌ Will not stay on. Ticking it returns `POST updatePHRModules 200` and the success toast, but it reads OFF after reload. The other six persist from the same POST, so it is that one field specifically — likely plan-gated. Not blocking: the forms live under Questionnaire. Raise with Charm support. |
+
+⚠️ **The PHR Modules screen needed three attempts.** Two saves returned HTTP 200 and the
+"PHR Module configuration updated" toast and still reverted. Never trust the toast on this screen —
+always reload and re-read the checkboxes.
+
+### The email typo — full audit (6 Aug 2026)
+
+`ateasefmailymedicalclinic.com` **does not resolve** (`socket.gethostbyname` → `NXDOMAIN`), so mail
+to it hard-bounces. Everywhere the address appears:
+
+| Location | Value |
+|---|---|
+| Carol's Charm member record / login (`USER_EMAIL`) | ❌ `info@ateasefmailymedicalclinic.com` |
+| Facility record shown to patients in the Web Embed | ✅ `info@ateasefamilymedicalclinic.com` |
+| Website (12 occurrences across `index.html`, `policies.html`) | ✅ correct |
+| All seven Charm consent forms | ✅ correct |
+| Ifeyinwa Egwuenu's member record | ✅ correct |
+
+**One field only** — but it is the one the Web Embed notifies, so she receives nothing when a
+patient books.
+
+Fix options (founder chooses; do not guess — it is her login):
+1. Create `carol@ateasefamilymedicalclinic.com` on the existing Google Workspace, then update Charm.
+2. Point it at a personal address she actually reads.
+
+`info@ateasefamilymedicalclinic.com` is **not** available — Charm already has it on Ifeyinwa's
+record and will reject the duplicate. Changing a login email may need Charm support.
+
 ### When patients actually sign the forms
 
 | Moment | What happens |
@@ -617,6 +652,151 @@ chip. Check this any time the footer colour changes.
 nav mark but the OG card scales it to 260px, which is soft up close. A vector would fix that and
 future-proof any print use.
 
+---
+
+## 4h. The "morning and evening" bug — FIXED 7 Aug 2026
+
+The founder reported: *"It still say morning and evening instead of actual clinic hours."* She was
+right, and it was the single biggest thing standing between her and seeing patients.
+
+### What was happening
+
+The widget was running in **request mode**, not **booking mode**:
+
+| | Before | After |
+|---|---|---|
+| Heading | "**Request** Appointment in 3 Easy Steps" | "**Book** Your Appointment in 3 Easy Steps" |
+| Step 1 | "Select Appointment **Preference**" | "Select Appointment **Slot**" |
+| Date | Date Choice 1 / 2 / 3 (free-text) | A real week grid |
+| Time | A dropdown: *Any Time / Morning / Evening* | Actual clickable times |
+
+### Root cause
+
+`Settings → Calendar → Web Embed → Show Providers` was **No**.
+
+With no provider attached, Charm has nobody's calendar to read, so it silently degrades to a
+"tell us roughly when suits you" request form. Charm's own docs hint at this: *"if no provider was
+listed in the embed code, practice staff must manually assign one."*
+
+**Fix:** Show Providers → **Yes**, and tick **Carol Kalu**.
+
+### Two things to know about that switch
+
+1. **The form changes shape.** In provider mode the Web Embed screen drops its own visit-type and
+   notification fields — those now come from the provider's `Online Appointments` config instead.
+2. **It silently drops the notification recipient.** `Appointment Request Notification Email` had
+   been set on the Web Embed; after the switch it reverted to *Not Required* on the Online
+   Appointments side. Re-set to **Required → Carol Kalu**. Always re-check this after touching
+   Show Providers.
+
+### Verified live
+
+Slots now render against her real hours, spaced by the selected visit's duration (45 min for a
+New Patient Visit):
+
+| Day | Slots shown | Her hours |
+|---|---|---|
+| Sunday | none | closed ✅ |
+| Monday | 08:00 → 14:45 + More | 8–5 ✅ |
+| Tuesday | 12:00 → 15:45 | 12–5 ✅ |
+| Wednesday | 10:00 → 16:45 | 10–6 ✅ |
+| Thursday | 08:00 → 14:45 + More | 8–6 ✅ |
+| Fri / Sat | none | closed ✅ |
+
+The `Appointment Slot: 30 min` setting is **not** what drives spacing — the visit type's own
+duration does. No change needed there.
+
+---
+
+## 4i. Values confirmed by the founder, 7 Aug 2026
+
+| Item | Value | Where it went |
+|---|---|---|
+| Missed appointment fee | **$25** | `clinic-config.js`, `policies.html`, and both Charm consent forms (Cancellation + Financial Policy) |
+| HIPAA notice effective date | **1 March 2023** | `policies.html` — the "to be confirmed" marker is gone |
+| Clinic ZIP | **75077** | Already corrected — **she fixed the Charm facility record herself**; the booking widget now shows 75077 |
+
+`MISSED_APPOINTMENT_FEE` is now `25`. The amount is also written into the static HTML, so it
+survives even if JavaScript fails; the config still overrides it.
+
+⚠️ `clinic-config.js` and `policies.html` are committed but **not yet uploaded** — the Network
+Solutions session expired again. The booking fix needed no deploy (it was entirely Charm-side).
+
+---
+
+## 4j. Bluefin — approved, one step left
+
+Bluefin approved the merchant account (**merchant # 8047397214**, email received 7 Aug). Charm's
+Bluefin page still reads *Status: Submitted, Requested Jul 27 2026 by Carol Kalu* — that status
+does not update itself.
+
+**The remaining step is `Settings → Billing → Bluefin → + Bluefin Beneficiary`**, which needs four
+things:
+
+| Field | Where it comes from |
+|---|---|
+| Beneficiary name | Any display name, e.g. `AtEase Family Medical Clinic` |
+| **Account number** | PayConex portal → **Settings → Manage Settings** |
+| **API access key** | PayConex portal → **Settings → Manage Settings** |
+| Facilities | tick `ATEASE FAMILY MEDICAL CLINIC` |
+
+🔴 **The founder must do this herself.** Two of those fields are live payment credentials, and
+handling those is out of scope for the assistant. She first has to complete the PayConex password
+reset Bluefin emailed her (they said within 24–48 h).
+
+Once the beneficiary exists, `Billing → Send Payment Link` and card-on-file both become usable —
+that is her "payment link" item.
+
+---
+
+## 4k. Insurance — the card reader is the answer, and it is already paid for
+
+**`Settings → Charm Assist → Insurance Card Reader` shows: *"Service has been enrolled on
+Jul 26, 2026 by Carol Kalu."*** Zero transactions so far. She subscribed to it and never used it.
+
+This changes the earlier §4d conclusion. We do **not** need a plan upgrade to capture insurance —
+we just need the right workflow. The card reader is **staff-side OCR**: it lives at
+`Patient Details → Insurance → + Insurance`, takes front/back images (JPEG/PNG, ≤5 MB each), and
+an **Extract** button pulls out insured ID, group number, policy name, payer, contact details and
+valid-from/to dates for staff to verify before saving.
+
+**The workflow that closes the loop, at no extra cost:**
+
+1. Patient books online
+2. Patient gets their portal invite and signs the consent forms
+3. Patient uploads a photo of the front and back of their insurance card to the portal
+   (`Allow patients to share documents from PHR` is already **Yes**)
+4. Staff open the chart → Insurance → Extract → verify → save
+
+Step 3 needs telling. A portal announcement covering it has been **drafted and saved** at
+`Settings → Patient → Announcements` — *"Before your visit: insurance card and forms"*. It is
+**saved, not published**: publishing pushes it to every patient's portal, which is the founder's
+call. One click on **Publish** when she is happy with the wording.
+
+---
+
+## 4l. The email conflict
+
+The founder replied with `info@ateasefamilymedicalclinic.com` — the correct spelling. But that
+address already sits on **Ifeyinwa Egwuenu's** member record, and a shared mailbox is arguably the
+better fit for an office manager than for the provider.
+
+Options, in order of preference:
+
+1. **`carol@ateasefamilymedicalclinic.com`** — new mailbox on the existing Google Workspace. Free,
+   personal to her, no conflict.
+2. Move `info@` to Carol and give Ifeyinwa her own address — more disruption, since it is also
+   Ifeyinwa's login.
+3. Any personal address she checks daily.
+
+Whichever she picks, changing a Charm **login** email may need Charm support.
+
+**Interim safety net:** `Online Appointments → Members To Be Notified` can have **Ifeyinwa** ticked
+alongside Carol. Her address is spelled correctly, so booking alerts would reach the clinic
+immediately. Left unticked pending the founder's approval — it decides who receives patient
+appointment information.
+
+
 ## 5. Compliance flags — raise with the founder / their biller
 
 - **Good Faith Estimate (No Surprises Act)** — self-pay patients are entitled to a written
@@ -643,10 +823,13 @@ future-proof any print use.
 | ~~Carol's working hours in Charm~~ ✅ done 29 Jul 2026 | — | — |
 | ~~Create 5 telehealth visit types + assign to Carol~~ ✅ done 4 Aug 2026 | — | — |
 | ~~Paste the Web Embed `src` into `clinic-config.js`~~ ✅ done 5 Aug 2026 — booking is live | — | — |
-| **Facility ZIP in Charm reads 76262, should be 75077** — shown to every patient in the scheduler (§4f) | Founder to confirm, dev to change | 🔴 High |
-| **Carol's Charm email is misspelled `ateasefmaily...`** — all her Charm notifications bounce (§4d) | Founder + Charm support | 🔴 High |
+| ~~Facility ZIP in Charm~~ ✅ confirmed 75077 and already corrected by the founder | — | — |
+| **Carol's Charm email is misspelled `ateasefmaily...`** — she wants `info@`, but it is taken (§4l) | Founder + Charm support | 🔴 High |
+| **Add the Bluefin beneficiary** — needs the PayConex account # and API key (§4j) | Founder only — payment credentials | 🔴 High |
+| Publish the portal announcement about insurance cards (§4k) | Founder to approve | 🟠 Medium |
+| Deploy `clinic-config.js` + `policies.html` (the $25 fee and HIPAA date) | Dev — needs NetSol login | 🟠 Medium |
 | ~~Deploy the 30–45 / 15–20 duration text~~ ✅ deployed 6 Aug 2026 | — | — |
-| Decide how insurance is collected — upgrade Charm, portal, or staff (§4d) | Founder | 🟠 Medium |
+| ~~Decide how insurance is collected~~ ✅ solved — the Insurance Card Reader is already enrolled (§4k) | — | — |
 | ~~Original logo file from the founder~~ ✅ received and shipped 6 Aug 2026 (§4g) | — | — |
 | Vector original of the logo (AI/EPS/SVG) — the PNG is soft at large sizes | Founder | 🟢 Low |
 | Confirm the cash price figures are right, or say which is wrong (§4f) | Founder | 🟠 Medium |
@@ -714,16 +897,135 @@ visitor who never books.
 `policies.html` renders the missed-appointment fee from
 `clinic-config.js → MISSED_APPOINTMENT_FEE`:
 
-- `null` (current) → the page shows *"A missed appointment fee — amount to be confirmed"*
-- a number, e.g. `35` → the page shows *"A missed appointment fee of $35"*
+- `null` → the page shows *"A missed appointment fee — amount to be confirmed"*
+- a number (current: `25`) → the page shows *"A missed appointment fee of $25"*
 
 Nothing else needs editing when the founder confirms the amount.
 
-### Remaining placeholder
+### Remaining placeholders — none
 
-- `CHARM_EMBED_URL` in `clinic-config.js` — one manual paste (see §4).
-- HIPAA notice effective date on `policies.html` — shows a visible "to be confirmed" marker.
+- `CHARM_EMBED_URL` — ✅ pasted 5 Aug 2026.
+- HIPAA notice effective date — ✅ set to 1 March 2023 on 7 Aug 2026.
+- Missed appointment fee — ✅ set to $25 on 7 Aug 2026.
+
+There are no `to be confirmed` markers left in `policies.html` (verified: `.doc__pending` count = 0).
 
 *(The `[ Provider Name ], FNP-C` card was removed from the About section on 26 Jul 2026. The
 `.provider-card` / `.about__visual` CSS remains in `styles.css` — unused but kept so the card is
 easy to restore.)*
+
+
+---
+
+## 4m. Full re-verification sweep — 8 August 2026
+
+Everything below was read back **from the Charm server**, not from a screenshot taken right after
+saving. Where the two disagree, the server wins (see the PHR Modules defect).
+
+### Charm — confirmed good
+
+`Settings → Calendar → Online Appointments` (`calendarSettings.do?method=fetchOnlineAppointments`):
+
+| Setting | Server value |
+|---|---|
+| `ALLOW_ONLINE_BOOKING` | ✅ on |
+| Show Visit Types | ✅ **Yes** (this is the one that kept reverting — it has now held for 4 days) |
+| Visit types exposed | ✅ all 5 ticked — Annual Wellness (45), Follow-up (20), New Patient (45), Refill (15), Weight Mgmt (20) |
+| `SHOW_VISIT_DURATION` | ✅ on |
+| Approval required | ✅ **New Patients only** |
+| `APP_REQUEST_MAIL` | ✅ **Required** — persisted |
+| Members notified | ✅ Carol Kalu ticked · Ifeyinwa Egwuenu unticked |
+| Waitlist | ✅ on |
+| Slots shown | ✅ Mon 8–5, Tue 12–5, Wed 10–6, Thu 8–6 — all "Show this Slot" |
+| `IS_CARD_PROCESSING_ENABLED` | ⬜ **off** — correct for now; it cannot be turned on until Bluefin has a beneficiary |
+
+`Settings → Calendar → Web Embed → Web Embed 1`:
+
+| Field | Value |
+|---|---|
+| Facility | ATEASE FAMILY MEDICAL CLINIC |
+| Provider(s) | ✅ **Carol Kalu** (the morning/evening bug fix — held) |
+| Hosting Website(s) | ✅ `ateasefamilymedicalclinic.com`, `www.ateasefamilymedicalclinic.com` |
+
+`Settings → Charm TeleHealth → Preferences`:
+
+| Field | Value |
+|---|---|
+| `TELE_CONSENT_FORM_PREFERENCE` | ✅ on — patients **must** complete consent forms before joining |
+| `TELE_PAT_IDS_PREFERENCE` | ✅ on — patients **must** upload photo ID before joining |
+| `TELEHEALTH_DISCLAIMER_CHECK` | ✅ on |
+| Video platform | Charm Integrated Video (browser-based, no app install) |
+| Reminders go to | ✅ All Patients (including those with a portal account) |
+
+### Charm — still broken (vendor-side)
+
+**PHR Modules will not save.** `messageSettings.do?method=updatePHRModules` returns HTTP 200 with a
+green *"PHR Module configuration updated"* toast, but re-fetching
+`messageSettings.do?method=showPatientMsgSettings` **from the server** returns every module OFF —
+Clinical Summary, Appointments, Questionnaire, Messages, Visit Summary, Billing, Announcements.
+A deliberate single-checkbox save reproduced it. The admin screen reads 6/7 ON right after saving
+and all-OFF after navigating via `home.do` first, which means the "ON" reading is a client-side
+artifact, not stored state. **This is a Charm support ticket.** It cannot be fixed from the UI.
+
+Unknown until a real patient logs in: whether *all modules off* means the portal hides everything,
+or whether an unset row falls back to Charm's default (show everything). Only the end-to-end test
+booking settles it.
+
+### Bluefin — the exact state
+
+`Settings → Billing → Bluefin` reads:
+
+```
+Status        Submitted
+Requested On  Jul 27, 2026
+Requested by  Carol Kalu
+```
+
+The beneficiary list is **empty**. Bluefin approved the merchant account by email on 7 Aug, but
+Charm's status field does not update itself and never will until a beneficiary row exists.
+The `+ Bluefin Beneficiary` form wants the PayConex **Account number** and **API access key** —
+live payment credentials, so the founder enters those herself. Everything downstream (card on file
+at booking, `Billing → Send Payment Link`) is gated behind that one form.
+
+### The email conflict — resolved by the practice
+
+Re-read from the member records, not from a cached page:
+
+- Ifeyinwa Egwuenu → `atease0417@gmail.com`
+- Carol Kalu → `info@ateasefamilymedicalclinic.com` (correct spelling, both fields on her Edit
+  Member form)
+
+The misspelled `ateasefmailymedicalclinic.com` (NXDOMAIN — every Charm mail to it hard-bounced) is
+gone from Charm. The `76262` still on Carol's member record is her **personal Roanoke home ZIP**,
+which is correct and is unrelated to the facility address (75077, already fixed).
+
+### Site — verified locally against the current commit
+
+Rendered `index.html` and `policies.html` from the repo in a headless browser:
+
+| Check | Result |
+|---|---|
+| `window.ATEASE` embed + portal URLs | ✅ both set |
+| `MISSED_APPOINTMENT_FEE` / `CANCELLATION_WINDOW_HOURS` | ✅ `25` / `24` |
+| Booking CTAs wired | ✅ 7 |
+| Patient Portal links wired | ✅ 4 |
+| Logo in nav + footer | ✅ both `<img>`, no 404 |
+| Scheduler before click | ✅ hidden, **0** iframes (lazy — no third-party request on page load) |
+| Scheduler after click | ✅ visible, 1 iframe, `src` set |
+| Pricing durations | ✅ 30–45 min / 15–20 min (the founder's numbers) |
+| `policies.html` HIPAA date | ✅ `Effective date: 1 March 2023` |
+| `policies.html` missed fee | ✅ `A missed appointment fee of $25` |
+| `.doc__pending` markers left | ✅ **0** |
+| HTTP 4xx/5xx responses | ✅ none |
+| JavaScript errors | ✅ none |
+
+`clinic-config.js` and `policies.html` are correct **in git** but still **not uploaded** — the
+Network Solutions session is unavailable. The live site therefore still reads "to be confirmed" in
+both places. Nothing else is pending a deploy.
+
+### Git
+
+`origin/main` had two `Update site` commits pushed from the founder's machine that predated the
+7 Aug value changes. Merged; conflicts in `PROJECT-NOTES.md`, `clinic-config.js` and
+`policies.html` resolved in favour of the newer local content (verified afterwards: fee `25`,
+HIPAA date present).
