@@ -288,6 +288,23 @@ ul{list-style:none}
 .valuecard p{font-size:.88rem;color:var(--ink-soft);margin-top:5px}
 
 /* =========================================================
+   TEAM
+   ========================================================= */
+.team{background:var(--bone-2)}
+.team__inner{max-width:860px}
+.team .section-title{margin-bottom:28px}
+.team-card{display:flex;gap:26px;align-items:flex-start;background:var(--paper);
+  border:1px solid var(--line-soft);border-radius:var(--r-lg);padding:clamp(26px,3.4vw,40px);box-shadow:var(--shadow-sm)}
+.team-card__mono{flex:none;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--display);font-weight:600;font-size:1.2rem;color:var(--bone-2);background:var(--forest)}
+.team-card__name{font-family:var(--display);font-weight:600;font-size:1.3rem;color:var(--ink)}
+.team-card__role{font-size:.92rem;color:var(--moss);font-weight:500;margin-top:3px}
+.team-card__chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.team-card__chips span{font-size:.76rem;font-weight:500;background:var(--sage-soft);color:var(--forest);padding:.42em .85em;border-radius:8px}
+.team-card__bio{margin-top:18px;color:var(--ink-soft);font-size:1rem;line-height:1.6}
+@media (max-width:640px){.team-card{flex-direction:column;align-items:flex-start}}
+
+/* =========================================================
    BOOK CTA
    ========================================================= */
 .book{position:relative;overflow:hidden;background:var(--clay);color:var(--bone-2)}

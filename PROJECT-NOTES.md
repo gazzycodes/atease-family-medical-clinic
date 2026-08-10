@@ -1029,3 +1029,39 @@ both places. Nothing else is pending a deploy.
 7 Aug value changes. Merged; conflicts in `PROJECT-NOTES.md`, `clinic-config.js` and
 `policies.html` resolved in favour of the newer local content (verified afterwards: fee `25`,
 HIPAA date present).
+
+
+---
+
+## 4n. "Our Team" section — built, DRAFT, not deployed (10 Aug 2026)
+
+Carol asked for three things in one WhatsApp message:
+
+1. Change her displayed name to **"Dr. Carol Kalu, DNP, APRN"** — she said she'd already done
+   this. Confirmed: `Settings → Facility → Facility Members → Edit Member` now has
+   `Prefix = Dr`, `First/Last = Carol Kalu`, `Degree = DNP, APRN`. This satisfies the Texas
+   Board of Nursing requirement that APRNs identify their licensure in public materials.
+2. **A "Team" page/section** on the website — the site currently has **zero** mention of her
+   name anywhere (confirmed by grep across every HTML file). The `.provider-card` /
+   `.about__visual` CSS left over from the removed 26 Jul provider card was reused as a
+   starting point.
+3. **No photo** — she was explicit about this.
+
+**What's built:** a new `#team` section (nav link "Our Team", desktop + mobile), a text-only
+card with a "CK" monogram instead of a headshot, her name/credentials, an
+"Founder & Advanced Practice Registered Nurse" role line, three credential chips, and a bio
+paragraph.
+
+**The bio paragraph is a placeholder — do not deploy as-is.** It is wrapped in `[DRAFT — ...]`
+and gives the shape (nursing school / degree program, years in practice, clinical focus,
+philosophy of care) without inventing specifics. Nothing about her education, years of
+experience, or specialty focus was fabricated — those facts aren't available from Charm or the
+site, only her name/credentials/role are confirmed. The WhatsApp screenshot she sent showing a
+different practice's "Our Team" layout was used only as a **style reference** (two-column card,
+tone) — its text describes a different provider (Dr. Njideka Domrufus) and was not reused.
+
+**Next step:** get Carol's real bio copy (2–4 sentences), drop it into the `[DRAFT ...]`
+paragraph in `index.html`, remove the HTML comment flag at the top of the section, then deploy
+with the rest of the batch.
+
+Verified locally: nav link present desktop + mobile, section renders, no console/network errors.
