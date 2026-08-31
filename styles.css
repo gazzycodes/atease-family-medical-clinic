@@ -511,7 +511,7 @@ ul{list-style:none}
 .nav__portal:hover{color:var(--clay);border-color:rgba(199,91,57,.45);background:var(--clay-tint)}
 
 /* =========================================================
-   CHARMHEALTH SCHEDULER (inline booking widget)
+   TEBRA SCHEDULER (inline booking widget)
    ========================================================= */
 .book__portal{flex-basis:100%;margin-top:10px;font-size:.92rem;color:rgba(251,247,239,.82)}
 .book__portal a{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:3px}

@@ -2,33 +2,47 @@
    AtEase Family Medical Clinic — external service config
    ---------------------------------------------------------
    This is the ONLY file you need to touch when a URL from
-   CharmHealth EHR changes. Nothing else in the site hard-codes
+   the Tebra EHR changes. Nothing else in the site hard-codes
    these values.
 
-   HOW TO FILL CHARM_EMBED_URL
-   ---------------------------
-   1. Log in to CharmHealth EHR as the practice admin.
-   2. Settings -> Calendar -> Web Embed.
-   3. Copy the "Embed code snippet" for "Web Embed 1".
-      It looks like:  <iframe width="100%" height="1000" src="THE_URL_YOU_WANT" ...>
-   4. Paste ONLY the value inside src="..." between the quotes below.
+   HOW TO REFRESH TEBRA_EMBED_URL
+   ------------------------------
+   1. Log in to Tebra (app.kareo.com) as a practice admin.
+   2. User menu -> Practice Settings -> Scheduling Widget.
+   3. Click "Copy Direct Link".
+   4. Paste it between the quotes below.
    5. Save, deploy, and hard-refresh the site.
 
-   The embed is domain-locked in Charm to:
-     ateasefamilymedicalclinic.com
-     www.ateasefamilymedicalclinic.com
-   It will refuse to load from any other host (including localhost),
-   which is expected behaviour, not a bug.
+   Unlike the old CharmHealth embed, the Tebra widget is NOT
+   domain-locked — it renders from any host, localhost included.
+   Verified rendering inside an iframe on the live domain on
+   31 Aug 2026.
+
+   NOTE: the widget will correctly show "there are no available
+   appointments through online booking" until BOTH of these are
+   done in Tebra:
+     a) Carol's office hours are set (Calendar Settings ->
+        Office Hours), and
+     b) Calendar Settings -> Online Scheduling -> "Enable Online
+        Scheduling" is ticked.
+   Allow 24-48 h after saving for Tebra to propagate.
+
+   MIGRATED FROM CHARMHEALTH, 31 Aug 2026.
    ========================================================= */
 window.ATEASE = {
 
-  /* CharmHealth Web Embed — public online scheduler (no login needed).
-     Leave "" until pasted; the site falls back to the Patient Portal. */
-  CHARM_EMBED_URL: "https://ehr.charmtracker.com/publicCal.sas?method=getCal&digest=d2007d41a47cedf558241140089795fce6346283cc7d62e04d9043c3087ea2844b5cb98c3566431f1a7bac7c7e9ad5671fd5a498e982bdad",
+  /* Tebra Scheduling Widget — public online scheduler (no login needed).
+     Leave "" to fall back to the phone number. */
+  TEBRA_EMBED_URL: "https://d2oe0ra32qx05a.cloudfront.net/?practiceKey=k_1_116619",
 
-  /* CharmHealth Patient Portal (PHR) login for this practice.
-     Existing patients: records, messages, appointments, forms. */
-  CHARM_PORTAL_URL: "https://phr.charmtracker.com/login.sas?FACILITY_ID=6da761489431a97430cdda46beb00fd8d2007d41a47cedf598ee2e5ce9d5cc8ac81b440bc8a53a00",
+  /* Tebra Patient Portal for this practice.
+     DELIBERATELY EMPTY. The CharmHealth portal was retired at the
+     founder's instruction ("remove charm for patient portal") and the
+     Tebra portal is not confirmed activated yet. While this is "",
+     every [data-portal-link] on the site hides itself automatically —
+     there is no dead link anywhere. Paste the Tebra portal URL here to
+     bring all four links back in one edit. */
+  TEBRA_PORTAL_URL: "",
 
   /* Clinic contact */
   PHONE_DISPLAY: "682-297-3822",

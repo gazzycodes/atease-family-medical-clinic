@@ -50,6 +50,7 @@
     { n: "Oscar", a: "Os" },
     { n: "Aetna", a: "Ae" },
     { n: "Amerigroup", a: "Ag" },
+    { n: "Medicare", a: "Mc" },
   ];
 
   /* ---------- Render services ---------- */
@@ -134,22 +135,23 @@
   if (yEl) yEl.textContent = new Date().getFullYear();
 
   /* =========================================================
-     CHARMHEALTH BOOKING INTEGRATION
+     TEBRA BOOKING INTEGRATION  (migrated 31 Aug 2026)
      ---------------------------------------------------------
      URLs live in clinic-config.js (window.ATEASE) — nothing here
-     needs editing when Charm settings change.
+     needs editing when Tebra settings change.
 
-       [data-book-cta]     -> opens the inline Charm scheduler
-       [data-portal-link]  -> Charm Patient Portal (new tab)
+       [data-book-cta]     -> opens the inline Tebra scheduler
+       [data-portal-link]  -> Patient Portal (new tab); auto-hides
+                              while TEBRA_PORTAL_URL is ""
 
      Behaviour:
-       • CHARM_EMBED_URL set   -> scheduler expands inline in #book
-       • only CHARM_PORTAL_URL -> scheduler falls back to the portal
+       • TEBRA_EMBED_URL set   -> scheduler expands inline in #book
+       • only TEBRA_PORTAL_URL -> scheduler falls back to the portal
        • neither               -> scrolls to #book and shows the phone
      ========================================================= */
   const CFG    = window.ATEASE || {};
-  const EMBED  = String(CFG.CHARM_EMBED_URL || "").trim();
-  const PORTAL = String(CFG.CHARM_PORTAL_URL || "").trim();
+  const EMBED  = String(CFG.TEBRA_EMBED_URL || "").trim();
+  const PORTAL = String(CFG.TEBRA_PORTAL_URL || "").trim();
   const PHONE  = String(CFG.PHONE_DISPLAY || "682-297-3822");
 
   /* ---- Patient Portal links ---- */
@@ -211,7 +213,7 @@
         "Pick a visit type and a time — it takes about a minute. New patient requests are confirmed by our team, usually the same business day.";
     } else if (PORTAL) {
       note.textContent =
-        "Scheduling opens in our secure CharmHealth patient portal. Prefer to talk to someone? Call " + PHONE + ".";
+        "Scheduling opens in our secure patient portal. Prefer to talk to someone? Call " + PHONE + ".";
     } else {
       note.textContent =
         "Online scheduling is being connected. Call " + PHONE + " to book a virtual visit in the meantime.";
