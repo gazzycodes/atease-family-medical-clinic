@@ -20,3 +20,6 @@ _to_delete/
 
 # Clinic legal/consent documents - internal, not for the public repo
 consent and disclaimers/
+
+# local production build (team draft stripped, assets versioned)
+.deploy/
