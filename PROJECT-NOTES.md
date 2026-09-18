@@ -1,9 +1,14 @@
 # AtEase Family Medical Clinic — Project Notes
 
-> Living handover document. Covers hosting, DNS, SSL, deployment, and the CharmHealth
-> booking integration research. Update this when anything infrastructural changes.
+> Living handover document. Covers hosting, DNS, SSL, deployment and the EHR booking
+> integration. Update this when anything infrastructural changes.
 >
-> Last updated: **8 August 2026**
+> Last updated: **18 September 2026**
+>
+> ⚠️ **The practice moved from CharmHealth to Tebra on 31 Aug 2026.** Sections 1-3 and 5-7
+> (hosting, DNS, deployment, site structure) still apply. **Sections 4 through 4v describe
+> the retired CharmHealth build** — kept for background only. For anything current, go to
+> **PART TWO** at the end of this file.
 
 ---
 
@@ -1065,3 +1070,770 @@ paragraph in `index.html`, remove the HTML comment flag at the top of the sectio
 with the rest of the batch.
 
 Verified locally: nav link present desktop + mobile, section renders, no console/network errors.
+
+---
+
+## 4n. Insurance intake before the visit — 10 Aug 2026
+
+**Carol's ask (via call, clarifying an earlier confused message):** insurance info must be
+uploaded/entered **before staff confirms the appointment**, for both insurance and cash-pay
+patients, matching standard US intake practice — verify coverage before the visit happens, not
+after.
+
+**What Charm can and cannot do:**
+
+- The questionnaire *builder's* generic field-type list is: Question, Question with Options,
+  Rating Scale, Yes/No, Label, Date, Signature, Section, Personal Details, Primary Contact Details,
+  **Primary Insurance Details**, Allergies, Medications, Supplements, and several history sections.
+  None of those generic building-block types is a raw file-upload widget — confirmed by inspecting
+  the Component/Widget dropdown directly.
+
+  🟢 **CORRECTED 12 Aug 2026, later same day (§4u):** that generic-toolbox fact does **not** mean
+  patients can't upload a card photo — it means the file upload isn't a *separate component you'd
+  drag onto a blank questionnaire*. It turns out to be **built into the "Primary Insurance Details"
+  smart-field itself.** Confirmed live by actually registering PAT0003's real Patient Portal
+  account, logging in as the patient, and opening the Patient Details questionnaire: the Insurance
+  Details section ends with a dedicated **"Insurance Card"** block — *"Front page: Click to
+  upload (Allowed file size: 10MB)"* and *"Back page: Click to upload (Allowed file size: 10MB)"* —
+  live, clickable, unmistakably real. So patients filling out Patient Details **can** photograph
+  and upload both sides of their insurance card themselves, no staff step required. This corrects
+  every earlier statement in this document (and told to Gazzy/Carol) that no upload path exists —
+  that was wrong, and the record is fixed here rather than silently edited. The Insurance Card
+  Reader (§4k) is still useful as a *staff-side* OCR/extract tool for whatever the patient uploads,
+  but it is no longer the only way a card photo reaches the chart.
+- What Charm *can* do: a pre-built **"Patient Details"** questionnaire already existed in the
+  account (Personal Details + Primary Contact Details + **Primary Insurance Details**, all
+  typed fields — payer, member ID, group #, etc.). It was built but never attached to booking.
+
+**Fix applied (Charm-side, live immediately, no deploy):** `Settings → Questionnaires →
+Preferences` — added **Patient Details** to the same "All Providers / All Visit Types" list that
+already sends the 6 consent forms at booking. Confirmed saved: the list now reads Authorization to
+Communicate, Cancellation/No-Show, Financial Policy, General Consent, HIPAA Notice, **Patient
+Details**, Telehealth Informed Consent.
+
+**How it behaves now:** every patient who books gets a PHR invite (per the existing "To PHR" share
+option — SMS/Email delivery is still the paid add-on, unchanged) and must fill Patient Details,
+including the insurance section, from their portal before the visit. Cash-pay patients simply
+leave the insurance fields blank — there is no separate "cash" link; it's one combined form.
+
+**What this does *not* do automatically:** Charm does not block appointment approval on the
+questionnaire being completed. For new patients (where approval is already required — see §4m),
+Carol/Ifeyinwa still need to manually check the patient's Patient Details submission in the chart
+before clicking Confirm. This is a process habit, not a system gate.
+
+**Told Carol (short version):** no API needed, it's a built-in feature; there's one universal
+intake form now attached to every booking, not two separate links; cash patients skip the insurance
+section.
+
+🟢 **CORRECTED §4u (12 Aug 2026):** the "Charm has no upload field" claim above was wrong — the
+Insurance Details section of this exact form has a built-in "Insurance Card" front/back upload,
+confirmed live. Patients *can* photograph and upload the card themselves; the Insurance Card
+Reader is now a staff-side verification/extract tool for what they upload, not the only path in.
+
+## 4o. Bluefin — now fully connected
+
+Carol linked the PayConex account herself. `Settings → Billing → Bluefin` now shows a live
+beneficiary row: **AtEase Family Medical Clinic**, Account # `120616010375`, API Access Key set.
+Card-on-file and `Send Payment Link` are usable as soon as she wants to start using them.
+`IS_CARD_PROCESSING_ENABLED` under Online Appointments is still **off** — that's a separate switch
+for collecting a card *at booking time*; nothing needs to change there unless she wants that too.
+
+## 4p. "Our Team" section — built, waiting on her bio
+
+A draft `#team` section was added to `index.html` (nav link + section, name "Dr. Carol Kalu, DNP,
+APRN" pulled from her actual Charm member record, no photo per her request, credential chips,
+placeholder bio paragraph marked `[DRAFT ...]`). **Not deployed yet** — waiting on her real bio
+copy (education, licensure, years of experience, specialties, philosophy) before this goes live.
+Gazzy has asked her for this directly.
+
+## 4q. Card processing at booking — turned on, 10 Aug 2026
+
+Carol's decision, confirmed via Gazzy: **"patients will pay before we see them"** — every
+patient, insurance included, pays the visit's listed price at the moment they book.
+
+**Charm setting:** `Settings → Calendar → Online Appointments → Enable Card Processing`
+
+| Field | Value |
+|---|---|
+| Enable Card Processing | ✅ On |
+| Beneficiary | AtEase Family Medical Clinic (the Bluefin account from §4o) |
+| Processing Type | **Store card on file and charge** — card is saved *and* charged immediately at booking |
+| Charge Type | **Based on visit** — charges each visit type's own listed price ($99/$65/$40/$125/$60), not one flat amount |
+
+**🔴 Reproducible Charm bug, confirmed twice:** the instant "Enable Card Processing" is checked,
+Charm silently resets "Approval for Appointments" from *Required for New Patients only* back to
+*Not Required* — **before Save is even clicked.** Caught this by reloading fresh, toggling the
+checkbox, and re-reading the DOM immediately (no save in between): the radio visibly flips.
+If anyone turns this off and back on later, or changes the beneficiary/processing type, **always
+re-check the Approval radio before saving** — verified server-side afterward, not just eyeballed
+the screen, because the screen and server have disagreed before (see the PHR Modules defect, §4m).
+
+**Verified server-side after save (fresh reload, not the cached form):** `IS_CARD_PROCESSING_ENABLED`
+on, `APPROVAL_REQUEST = Required for New Patients only` still correct, `APP_REQUEST_MAIL` and the
+notified members unchanged, all 5 visit types and all 4 time slots unchanged.
+
+**What this means for a patient booking now:** they can't submit a request without entering a
+card; it's charged the visit's cash price immediately; approval is still required for new
+patients before the appointment is confirmed on Carol's calendar. This applies uniformly —
+insurance patients are charged the same way (no per-visit-type or per-payer scoping exists in
+this settings screen). Carol's biller reconciles/refunds against the insurance claim afterward if
+needed — that's a billing-process decision on her end, not a technical constraint.
+
+## 4r. §4q is wrong for insurance patients — Carol pushed back, 12 Aug 2026
+
+Carol, via WhatsApp (1:53am + 3:15am): *"We supposed to have two options. Cash pay patients will
+pay for their visit before and insurance people will move on to complete their insurance
+information before confirmation... It won't let patients move on unless they make a payment, but
+insurance only make payment after insurance verification."* The global card gate from §4q blocks
+insurance patients exactly the way she's describing — this is not new breakage, it's what "one
+switch for the whole practice" always does. Gazzy asked for a thorough, one-time, complete
+investigation instead of another partial fix.
+
+**Confirmed exhaustively (multiple independent checks, live in Charm) that no per-patient-type
+branching exists anywhere in Charm's online booking:**
+- Visit Type edit dialog (Settings → Calendar → Visit Types → Edit): no payment field at all —
+  Visit Type, Appointment Mode, Duration, Charge, Default template(s), Procedure Code, "Send
+  Invoice automatically" Yes/No, Color. That's the complete field set.
+- Online Appointments settings page: "Enable Card Processing" is one checkbox for the entire
+  (Facility, Provider) — Beneficiary, Processing Type, Charge Type, Approval for Appointments,
+  notification settings, booking-window limits, waitlist — no per-visit-type or per-payer option
+  anywhere on the page.
+- Live patient-facing widget (ateasefamilymedicalclinic.com → Book a Visit): straight linear flow,
+  service → slot → patient info → card. No "how will you pay" branch step that could route cash
+  vs. insurance differently.
+- Confirmed the "New Patient Visit" step still shows "Requests from new patients are reviewed by
+  our team before they are confirmed" — Approval setting is intact and working as documented in
+  §4q.
+
+**Conclusion: Charm's online-booking card gate is genuinely all-or-nothing.** It cannot be made
+mandatory for cash-pay patients only while insurance patients skip it. This is a hard product
+limitation, not a misconfiguration.
+
+**The fix that doesn't require a Charm feature that doesn't exist:** Billing → Invoices has a
+"Use Payment Gateway" option tied directly to the same live Bluefin/PayConex connection (§4o) —
+a per-invoice, staff-triggered payment tool completely separate from the booking widget's card
+gate. Recommended path: turn OFF "Enable Card Processing" on Online Appointments (removes the
+gate for everyone), then for cash-pay patients staff sends a Bluefin-backed invoice right after
+booking and holds confirmation/approval until it's paid; insurance patients book straight through
+with no gate and pay after verification, per Carol's description. Trade-off, stated plainly to
+Gazzy: this turns cash-pay collection from automatic-at-booking into a manual staff step
+(send invoice → confirm paid → approve) — there's no way to keep it automatic for cash patients
+only, since the automatic gate is inherently all-or-nothing.
+
+**Not yet implemented — holding for Carol's decision.** Gazzy is asking Carol to check with her
+Bluefin/PayConex contact whether a static, reusable self-serve "Pay Now" hosted payment link
+exists (would let cash-pay patients pay themselves from a link on the site, cutting out per-
+patient manual invoice work) — this wasn't checked because neither Gazzy nor Claude has direct
+login access to Bluefin's own merchant portal, only what's reachable through Charm's connection
+to it. **No live Charm settings were changed in this investigation** — card processing remains ON
+exactly as configured in §4q until Carol responds.
+
+## 4s. Card processing turned OFF, manual-invoice workflow adopted — 12 Aug 2026
+
+Carol answered directly (WhatsApp, 6:31pm): *"Good morning, how do we turn off the payment and
+just send payment link before confirming the appointment?"* — confirms the §4r recommendation.
+Gazzy made the change live in Charm (Settings → Calendar → Online Appointments), confirmed via
+screenshots:
+
+| Field | Value (confirmed via screenshot) |
+|---|---|
+| Enable Online Appointments | ✅ On |
+| Enable Card Processing | ⬜ **Off** (was On since §4q) |
+| Approval for Appointments | **Not Required** ⚠️ see below |
+| Appointment Request Notification Email | Required, sent to Dr. Carol Kalu |
+| Booking window | ≥24 hrs advance, ≤180 days out (unchanged) |
+
+**⚠️ Open gap, not yet fixed:** Approval for Appointments reset to **"Not Required"** — matches
+the reproducible bug from §4q (toggling Enable Card Processing resets this radio), just in the
+opposite direction this time. **This matters a lot for the new plan:** with Approval "Not
+Required," every booking — cash-pay included — auto-confirms the instant the patient submits it,
+with zero staff review step. That defeats the entire point of "hold off confirming until the
+cash-pay patient's payment link comes back paid," because there is nothing left to hold — Charm
+confirms it automatically before staff ever sees it.
+
+**Fix needed:** change Approval for Appointments to **"Required for All Patients"** (not
+"Required for New Patients only," the old §4q value — cash-pay-before-visit has to apply to
+*every* cash-pay patient, new or returning, so every booking needs to land in the
+Appointment Requests queue for staff to act on, not just new-patient ones). Settings → Calendar →
+Online Appointments → Approval for Appointments → Required for All Patients → Save. **Verify
+server-side after saving** (reload fresh, don't trust the on-screen state) that Card Processing
+is still off and Approval didn't bounce back — same bug can trigger either direction.
+
+**The manual-payment workflow, once Approval is fixed:**
+1. Patient books (cash-pay or insurance) → lands in Calendar → Appointment Requests as pending,
+   nothing is confirmed yet, no card was collected.
+2. **Cash-pay patient:** staff opens Billing → Invoices, creates/opens the invoice for that
+   encounter, checks **"Use Payment Gateway"** (tied to the live Bluefin/PayConex beneficiary from
+   §4o), and uses **Send Invoices** to email the patient a payable link. Staff leaves the booking
+   in Appointment Requests until payment shows up (Billing → Receipts / the invoice's Payment
+   status), then goes to Appointment Requests and approves/confirms the visit.
+2. **Insurance patient:** patient already submitted their Primary Insurance Details at booking
+   (§4n questionnaire). Staff reviews the request in Appointment Requests, confirms once the
+   insurance info looks complete — no payment gate, no invoice needed at this stage. Payment/copay
+   is handled after eligibility verification, per Carol's own description.
+3. Both paths land in the same Appointment Requests queue because Approval is required for
+   everyone now — the only difference is *what* staff checks before clicking approve (payment
+   received vs. insurance info complete).
+
+**Not yet verified live:** the exact patient-facing experience of "Use Payment Gateway" +
+"Send Invoices" — i.e., whether the emailed invoice actually contains a clickable pay-now link
+and what it looks like to the patient. Recommend Carol send herself (or Gazzy) one test invoice
+before relying on this for a real patient, the same way we've verified everything else server-side
+rather than assuming the UI does what it implies.
+
+## 4t. Real end-to-end test booking — findings, correction, and the actual payment answer, 12 Aug 2026
+
+Gazzy applied the §4s settings live (Card Processing off, confirmed via screenshot) and personally
+submitted one real booking through the public widget (browser automation couldn't reliably click
+through the widget's accordion — a pre-existing, unresolved flake — so Gazzy drove that part while
+Claude verified the Charm admin side). Test patient: **PAT0003 "Test ZZDeleteMe"**, email
+`gazzyjuruj@gmail.com`, phone `972-555-0142` (fabricated 555 number), booked New Patient Visit for
+Aug 13 2026. Everything below is read from the live server after that real booking, not assumed.
+
+### Correction to §4s — "Use Payment Gateway" is a staff terminal, not a patient link
+
+§4s described "Use Payment Gateway" + "Send Invoices" as emailing the patient a payable link. That
+was wrong, confirmed by actually opening it: **"Use Payment Gateway" opens a staff-side card-entry
+form** — Input Type dropdown offers only **Swipe / Key-in / EMV Chip Reader**. A staff member has
+to have the card in hand or take the number over the phone and key it in. It is not a self-service
+patient link. (No card number was entered anywhere during this check, per standing policy.)
+
+### The actual patient journey, confirmed live
+
+1. Patient submits the booking → lands in **Calendar → Appointment Requests** as genuinely
+   pending — confirmed via screenshot walkthrough with Gazzy. Nothing auto-confirms.
+2. Staff clicks **Confirm** → this single action fires three things at once, confirmed by the four
+   real emails that landed in the test inbox: **Appointment Request** (sent immediately at
+   submission), then together at confirmation — **Video Consult Confirmation**,
+   **Questionnaire Notification**, **Patient Portal Registration**.
+3. Confirming **creates the Patient record** (PAT0003 didn't exist until Confirm was clicked) but
+   does **not** create an Encounter — Billing → Encounters for PAT0003 reads "Encounters not
+   available" even after confirmation. A separate step (check-in, not yet identified precisely)
+   still creates the encounter.
+4. **This is when/how ID and insurance get filled in:** the Questionnaire Notification email links
+   to the **Patient Details** questionnaire (attached to every booking since §4n) — Personal
+   Details, Contact, and **Primary Insurance Details** (payer, member ID, group #, plus a built-in
+   front/back Insurance Card photo upload — see the §4u correction below). Patients type this in;
+   cash-pay patients leave the insurance section blank.
+
+### The real answer to "portal self-pay vs. send a link"
+
+Both are genuine, separate, working Charm features — confirmed two different ways.
+
+**"Send Payment Link" — confirmed live in Carol's account**, under
+`Calendar → List View → (per-appointment/bulk) More`. This is the literal feature Carol asked for
+("just send payment link before confirming the appointment") — not the invoice/terminal workaround
+§4s substituted for it. The List View's own filter dropdown proves it's a first-class, tracked
+workflow, not a one-off action:
+
+> Patients With Card on File · Patients With Card on File & Not Charged yet · Patients With No
+> Card on File · **Patients With No Card on File and Payment Link not Sent** · **Payment Link
+> Sent** · **Payment Link Sent & Payment Not Received Yet** · Payment Received/Card Charged
+
+No portal registration or card-on-file is required for this path — staff triggers it, the patient
+gets a link, Charm tracks paid/unpaid status against the appointment. This is the recommended
+primary mechanism for cash-pay collection, and it directly replaces the manual-invoice workaround
+in §4s.
+
+**Patient Portal self-pay also works, once a patient is registered.** Confirmed via CharmHealth's
+own documentation (cited below) and cross-checked against the live account: once a patient has a
+PHR account and the practice has Bluefin connected (already true — §4o), invoices show a **"Pay" /
+"Make Payment"** button inside the portal's Billing tab, and the patient can pay with a saved or
+new card themselves. Testing this personally hit one wrinkle worth recording: the **first**
+registration link Charm emailed came back `{"result":"failure","message":"short_url not found"}` —
+looked broken. Clicking **Resend Invitation** on the patient's chart (Patient Details → PHR
+Registration) generated a fresh link that resolved correctly to a real "Patient Portal Account
+Activation" page — so the first link was a one-off glitch, not a systemic defect. Full registration
+couldn't be completed by Claude because the same browser was simultaneously logged into Carol's
+Charm **admin** account, which the portal login explicitly refuses to run alongside
+("You may have logged in to accounts.charmtracker.com. Please 'logout' and then try again") — a
+testing-environment conflict a real patient will never hit, since they'll never be logged into the
+clinic's staff account.
+
+**Recommendation:** use **Send Payment Link** from the Calendar as the everyday cash-pay
+mechanism — no portal signup required, matches what Carol actually asked for, and Charm tracks the
+paid/unpaid state for you. Patient Portal self-pay is a legitimate second option for patients who
+already have (or want) a portal account, but isn't necessary for the core workflow.
+
+Sources: [CharmHealth — Online Patient Payment](https://www.charmhealth.com/resources/billing/online-patient-payment.html),
+[CharmHealth — Payment Collection from the Calendar section](https://www.charmhealth.com/resources/billing/payment-collection-from-calendar.html),
+[CharmHealth — Patient Portal Billing/Invoices](https://www.charmhealth.com/resources/phr-user-guide/patient-billing.html)
+
+### 🔴 Procedure Codes blocker — CORRECTED, only affects the invoice path, not Send Payment Link
+
+**Zero Procedure Codes are configured in the practice** — confirmed by opening "Choose from Master
+List" on an invoice (empty list) and by the Billing Setup Wizard, which reads *"Procedure Codes are
+not yet added."* This blocks Charm's standard invoice screen (Billing → Invoices → +Invoice →
+Use Payment Gateway) from calculating any dollar amount.
+
+**Correction — this does NOT block Send Payment Link.** Opened the feature directly
+(Calendar → List View → "•••" menu → Send Payment Link → **Payment Preference**) and it offers four
+independent sources for the amount, none of which touch procedure codes:
+
+| Source | Needs |
+|---|---|
+| Primary Insurance Copay (current default) | Copay on file for the patient |
+| **Visit Type Charge** | Nothing extra — pulls straight from the $99/$65/$40/$125/$60 already set in Settings → Calendar → Visit Types (§4b) |
+| Primary Insurance Additional PR | Patient-responsibility figure from a processed claim |
+| Fixed Amount | A flat number typed right there |
+
+**So Send Payment Link can go live today**, with zero dependency on Procedure Codes, by switching
+Payment Preference from its current default (Primary Insurance Copay) to **Visit Type Charge**.
+Procedure Codes only matter if the practice wants to invoice through Charm's standard Billing →
+Invoices screen or eventually submit insurance claims — worth doing eventually, not a blocker for
+this specific feature. (Popped the Payment Preference dialog to inspect it, then clicked Cancel and
+closed the tab without sending or updating anything — no real payment link was sent to the real
+patient whose row was open, Praise Kalu/PAT0002.)
+
+**Needs Carol or Gazzy to add Procedure Codes eventually** via Settings → Billing → Procedure Codes
+→ "+ Procedure Code" (Code number, Description, Charge, Category are the fields; Charge is the
+dollar amount — [CharmHealth docs](https://www.charmhealth.com/resources/billing/procedure-codes.html)).
+Claude still cannot reach Settings at all this session (see the gear-icon defect below) — confirmed
+again this pass, so this remains something only a human with a working Charm session can do.
+
+### 🔴 Still unresolved from this session — Charm admin "Settings" gear icon
+
+Extensively retested (20+ approaches: coordinate and reference clicks, single/double-click, hover,
+keyboard, fresh tabs). It fires **zero network requests** on click — no client-side handler even
+attempts navigation. Two unrelated real JS errors are present on page load
+(`Identifier 'PrescriptionHtml' has already been declared`, `photoUploadTrack is not defined`) —
+possibly connected, not confirmed. **Workaround, as used throughout:** exact manual click-path
+instructions given to whoever has the Charm session open (Settings → Billing → Procedure Codes, in
+this case) — this is why the Procedure Codes fix above needs a human, not Claude.
+
+### Bluefin — reconciled
+
+Carol's 2 successful test charges ($99, $10) confirm the Bluefin/PayConex connection itself
+processes real charges end-to-end — the most important piece to have working. The exact mechanism
+she used to run them (Use Payment Gateway terminal vs. Send Payment Link vs. Bluefin's own
+PayConex virtual terminal outside Charm) wasn't asked — doesn't change the conclusion, since all
+three ultimately settle through the same beneficiary.
+
+### Cleanup — needs a human, not Claude
+
+**PAT0003 "Test ZZDeleteMe" and its Aug 13 2026 test appointment are still live** in Carol's
+production Charm account. Claude does not permanently delete data under any circumstances, even
+with explicit permission (standing policy) — so this needs Carol or Gazzy to delete it manually:
+**Patients → PAT0003 Test ZZDeleteMe → open the record → delete the patient** (and the linked
+appointment on Calendar, Aug 13 2026, if deleting the patient doesn't remove it automatically).
+
+### Bottom line for Gazzy
+
+1. **Send Payment Link** (Calendar → List View → "•••" menu) is the real, built-in answer to
+   Carol's original question — confirmed live, exact click path, and confirmed it works **today**
+   with no Procedure Codes needed, once Payment Preference is set to "Visit Type Charge."
+2. Portal self-pay works too, as a secondary option, once patients register — the one broken link
+   found was a one-off, not a pattern.
+3. ID/insurance-card **photo** upload — corrected below in this same section: it *is* possible,
+   built directly into the Patient Details questionnaire.
+4. **Procedure Codes are not a blocker for Send Payment Link** (corrected above) — only needed for
+   Charm's standard Billing → Invoices screen and for real insurance-claim submission down the
+   line. Still worth Carol/a biller adding real CPT codes eventually for that reason, just not
+   urgent for getting cash-pay collection working.
+5. Test patient PAT0003 needs manual deletion by Carol or Gazzy.
+
+## 4u. Send Payment Link — live end-to-end test, real send, 12 Aug 2026
+
+Gazzy asked for a full real test before briefing Carol. Done — this is a live, real send against
+PAT0003 (`gazzyjuruj@gmail.com`), not a dry run.
+
+**Steps taken, live in Carol's account:**
+
+1. Calendar → List View → Aug 13 → PAT0003's appointment row → "•••" menu → **Send Payment Link**.
+2. Opened **Payment Preference**, switched it from the default ("Primary Insurance Copay") to
+   **"Visit Type Charge."** The Payment Request field auto-filled to **$99.00** — the New Patient
+   Visit's price, pulled automatically, no procedure code involved anywhere in this flow.
+3. Clicked **Send Payment Link**. Confirmation screen: **1 sent successfully, 0 failed**, "Sent to
+   gazzyjuruj@gmail.com, $99.00."
+4. Checked the actual inbox. Real email arrived immediately, subject "Payment Request from ATEASE
+   FAMILY MEDICAL CLINIC" — professional, correct clinic address/phone, correct amount. Gmail's own
+   bill-detection even auto-added a "Pay bill — US$99.00" smart chip on top of it.
+5. Opened the "Pay Now" link in the email (`chrm.care/...` short link → resolves to
+   `ehr.charmtracker.com/payment.sas`). **Real, working, patient-facing payment page** — no portal
+   login, no account of any kind required. Shows Patient Name, "Payment Requested: US$99.00",
+   Description "For Appointment with Dr. Carol Kalu on Aug 13, 2026," and a card-entry form (Card
+   Number, Exp, CVV, name, billing address). Footer note: *"CharmHealth does not store your card
+   information"* — goes straight to Bluefin.
+6. **Stopped there deliberately** — did not enter any card number or click Pay, per standing policy
+   (Claude never enters payment credentials anywhere, even in a test, even with permission).
+
+**This confirms, with certainty, not inference:**
+- The amount calculates correctly from Visit Type Charge with **zero Procedure Codes** configured —
+  directly observed, not assumed.
+- The send mechanism works end-to-end — Charm's own success counter, not just a "should work."
+- The email is real, professional, and lands normally in Gmail (not spam-flagged in this test).
+- The payment page is genuinely patient-facing with **no login/portal requirement** — reachable by
+  anyone with the link, which is the whole point of "send a payment link."
+- The only unverified link in the chain is the final card charge itself — not tested here (policy),
+  but already independently confirmed working by Carol's own 2 real Bluefin charges ($99, $10)
+  reported earlier in this project.
+
+**What was checked and is a known rough edge:** the Calendar List View "Filter by → Payment Link
+Sent" status filter didn't reliably reflect the new send when checked immediately after (native
+dropdown, may just need a moment or a page refresh — not re-verified further to avoid over-spending
+on a cosmetic detail). The authoritative place to check payment status day-to-day is
+**Calendar → Reports → Payment Collection History**, which Charm's own confirmation screen points
+to directly.
+
+### Insurance/questionnaire step — re-confirmed, not re-tested visually
+
+Opened the actual **Questionnaire Notification** email for PAT0003 and read it directly. It lists
+all 7 attached forms (Patient Details, Telehealth Consent, General Consent, Financial Policy,
+Cancellation Policy, Authorization to Communicate, HIPAA Acknowledgment) and states explicitly:
+register/log into the **Patient Portal** → Questionnaires section → fill and submit. **This confirms
+insurance intake genuinely requires the Patient Portal — there is no separate, portal-free link for
+questionnaires**, unlike Send Payment Link which needs no portal at all. These are two independent
+mechanisms, not two versions of the same thing.
+
+**Did not obtain a fresh screenshot of the blank insurance form this pass.** Completing PAT0003's
+real portal registration to get one would have required logging out of the Charm admin session
+this browser is also using — risking losing admin access for the rest of the session (no way to log
+back in without Carol's credentials, which Claude does not have and should not enter regardless).
+Declined that trade for a screenshot. The Patient Details questionnaire's actual field structure
+(Personal Details, Contact Details, Primary Insurance Details: payer, member ID, group number) was
+already verified directly in Charm when it was built and attached — see §4n. Nothing about that
+has changed. If Gazzy wants a real screenshot of the patient-side insurance form, the clean way is
+completing PAT0003's registration from a device that is **not** logged into Carol's Charm admin
+account (e.g., Gazzy's phone) — happy to walk through that whenever wanted.
+
+## 4v. Full portal registration completed, insurance-card upload discovered — 12 Aug 2026, same day
+
+Gazzy chose the clean option above himself: signed out of the Charm admin session in the shared
+browser (his own device, so trivially reversible — no credentials needed to get back in besides
+what he already has), then let Claude drive the rest with one carved-out exception.
+
+**Registration, step by step, live:**
+1. Opened the resent PHR link from §4t (`chrm.care/OZW6U0E0itaG`) with admin logged out — this time
+   it worked cleanly: no session conflict, straight to a real 2-step wizard.
+2. Step 1, DOB Verification — entered PAT0003's DOB (`10/27/1999`). Not a credential, just an
+   identity check; Claude filled this.
+3. Step 2, Account Creation — Password/Confirm Password + captcha + Terms of Service. **Claude did
+   not touch this step.** Creating an account / entering a password is one of the standing
+   prohibited actions regardless of permission — flagged to Gazzy plainly, and he typed his own
+   password directly into his own open browser tab.
+4. Gazzy confirmed: account created, logged in.
+
+**From there, Claude drove the patient-side session (pure navigation/viewing, no credentials):**
+dashboard → Questionnaire (7 pending, all "New") → opened **Patient Details**. Confirmed live,
+patient's own view:
+- Personal Details / Contact Details pre-filled from the original booking (name, DOB, phone,
+  address) — patient only has to fill gaps and add insurance, not retype everything.
+- **Insurance Details** section: "Do you have insurance?" Yes/No, then Insurance Type, Plan Name,
+  ID, Insurance Company Name, Valid From/Until, Policy Group/FECA Number, Copay, Deductible,
+  Employer/School Name, Comments, and an **Insured Person** sub-section (relationship, name, DOB,
+  gender, address — for when the subscriber isn't the patient).
+- **🟢 Insurance Card upload — real, working, confirmed by screenshot:** directly below Insured
+  Person, a dedicated **"Insurance Card"** block: *"Front page: Click to upload (Allowed file
+  size: 10MB)"* and *"Back page: Click to upload (Allowed file size: 10MB)"*. This overturns the
+  "no upload anywhere in Charm" claim repeated through §4d/§4n/§4t of this document — that claim
+  was checked against the generic questionnaire-builder toolbox, not this specific built-in
+  Insurance Details smart-field, which turns out to already have the upload baked in.
+
+**Direct answer to Gazzy's question — "where do patients see insurance, another email or only
+after login?":** Only after login. There is no separate insurance email and no direct link to just
+the insurance section. The **Questionnaire Notification** email (one email, sent right after
+Confirm) lists all 7 forms by name — including "Patient Details" — and tells the patient to log
+into the Patient Portal and open Questionnaires from there. The insurance fields (and the card
+upload) are inside that one Patient Details form, invisible until the patient has registered and
+logged in. Cash-pay patients see the exact same form and just answer "No" to "Do you have
+insurance?" and skip the rest of that section.
+
+**Updated picture of ID/insurance intake, corrected end-to-end:**
+- Insurance details (typed) + insurance card photo (uploaded) → both inside Patient Details,
+  patient-portal-gated, confirmed live.
+- Government ID photo → separate mechanism, not this form: `TELE_PAT_IDS_PREFERENCE` (§4) already
+  hard-blocks joining the telehealth video visit until the patient uploads photo ID — verified
+  enabled earlier in this project, unrelated to and independent of the Patient Details form.
+- So between these two mechanisms, Charm **does** capture photographed ID and photographed
+  insurance card from the patient directly — no staff manual-photo step required for either,
+  contrary to what was stated earlier in this project.
+
+**Cleanup reminder, unchanged:** PAT0003 is now a *real, registered* Patient Portal account on top
+of being a live patient/appointment record — one more reason this needs deleting once testing
+wraps (Carol or Gazzy, per standing policy on Claude never permanently deleting data).
+
+---
+
+# PART TWO — THE TEBRA ERA (31 Aug – 18 Sep 2026)
+
+> **Everything above this line describes the CharmHealth build and is superseded.**
+> Keep it for history — the consent-form research, the payment findings and the
+> test-booking walkthroughs still explain *why* things are shaped the way they are —
+> but Charm is gone from the site and from the practice. Start here.
+
+---
+
+## 8. The switch to Tebra
+
+Carol told us on 30 Aug 2026 that she had left CharmHealth: *"I don't use charm anymore.
+We can't see patients with charm. I switched to a different EHR."* Everything in §4–§4v
+about Charm booking, the Charm portal, Bluefin and Send Payment Link is now dead.
+
+### 8.1 Account facts
+
+| | |
+|---|---|
+| App | `app.kareo.com` (Tebra is the rebranded Kareo) |
+| Practice | `AtEase Family Medical Clinic\|1` |
+| Practice key | `k_1_116619` |
+| Provider | Carol Kalu, NPI 1932669348 |
+| Our login | `atease0417@gmail.com` → resolves to user **Uruj Gazzy**, `gazzyjuruj@gmail.com` |
+| Our role | **Office Staff — not System Administrator** |
+| Tier | Engage / Patient Experience (includes the scheduling widget; no upgrade needed) |
+
+**Carol is the only administrator and intends to stay that way.** That permanently blocks
+us from Tebra Payments settings, Portal Settings, and the service-location record. Anything
+in those areas has to go through her. 2FA codes go to Gazzy's Gmail because the user was
+created against his address — deliberate, confirmed by Carol.
+
+The password she originally supplied (`Group123@`) is dead; a reset was done 31 Aug 2026.
+
+### 8.2 Is the scheduling widget included? Yes — audited 31 Aug 2026
+
+Tebra gates the scheduling widget behind an **Engage or Patient Experience** subscription.
+This account has both the Patient Experience module and a live Performance Dashboard, and
+the Scheduling Widget settings page renders real embed codes rather than an upsell. **No
+plan change and no add-on purchase was ever required.**
+
+Also confirmed included at no extra cost, all of which Charm either charged for or lacked:
+email + SMS + **voice** appointment reminders on a five-stage schedule; intake forms
+delivered by SMS/email with **no patient portal account required**; Carol's six custom
+consent forms already loaded into Patient Intake; a signed BAA under Legal Agreements.
+
+### 8.3 THE BOOKING EMBED
+
+```
+https://d2oe0ra32qx05a.cloudfront.net/?practiceKey=k_1_116619
+```
+
+Lives in `clinic-config.js` as `TEBRA_EMBED_URL`. To refresh it: Tebra → user menu →
+Practice Settings → **Scheduling Widget** → *Copy Direct Link*.
+
+That page also offers a **Widget snippet** — a script that floats a booking bubble in the
+corner instead of embedding inline. We use the direct link; Carol was told the other exists.
+
+**Unlike Charm's embed, this is not domain-locked.** It renders from any host, localhost
+included. Proven by injecting it as an iframe on the live domain and screenshotting it.
+
+**It is white-label.** The direct link serves a bare booking panel — no Tebra branding, no
+marketplace, no navigation away. It is *not* the Care Connect directory page. (Her public
+Care Connect profile at `tebra.com/care/provider/carol-kalu-1932669348` is a separate thing
+that does list competing specialties, but patients arriving from her site never see it.)
+
+### 8.4 Practice scheduling URL — permanent, has a suffix
+
+```
+https://practice.kareo.com/ateasefamilymedicalclinic-1
+```
+
+Carol enabled online scheduling herself on 2 Sep after saying *"use all lowercases to match
+the website"*. **Tebra appended the `-1` on its own** — same convention as her provider URL
+`dr-carol-kalu-2`. It cannot be edited, ever. It does not exactly match her domain and she
+may not have noticed. Nothing is broken by it: the website embed does not use this URL, it
+only powers the standalone page for Google and print.
+
+### 8.5 The empty-calendar saga — resolved
+
+From 31 Aug to early Sep the widget reported *"Currently, there are no available
+appointments through online booking."* Two weeks of diagnosis:
+
+- **It was never the website.** Tebra's own practice page and Tebra's own provider page
+  both embed the identical CloudFront widget and were **equally empty**. Tebra could not
+  show her availability on Tebra's own properties.
+- Ruled out one by one: office hours (set), provider-level online booking (enabled), the
+  global visit-reason toggle (on), per-visit-reason toggles (**do not exist** — the Edit
+  Visit Reason modal has only Name, Duration, Color, Associated Procedures), Schedules
+  (optional; availability derives from Office Hours).
+- We deliberately did **not** flip the practice-level toggle to "fix" it, because that
+  setting creates a permanent URL and we had no evidence it was the cause. Correct call —
+  Carol flipped it herself and the calendar stayed empty afterwards, so it wasn't that.
+- **Resolution: it came good on its own** once Carol finished configuring. Confirmed live
+  18 Sep 2026. Cause was Tebra-side propagation, restarted by each of her edits.
+
+**Live booking flow as at 18 Sep 2026:** three steps — *Appointment details → Contact info
+→ **Insurance info*** — with New/Returning patient, a Reason for visit selector, In-person
+vs Virtual visit, and a working date strip. **Insurance is collected inline at booking**,
+which Charm could not do (see §4n, where we solved it with a portal upload instead).
+
+Carol's office hours: Mon 9–5, Tue 11–5, Wed 11–5, Thu 9–5. No Friday or weekend.
+
+### 8.6 Bookings are REQUESTS, not confirmations
+
+A Tebra online booking lands **tentative**. Front-office staff must confirm it from the
+dashboard, and only then does the intake-form invitation go out by SMS/email. This differs
+from Charm and matters for how the site describes booking.
+
+Also: **Tebra shows no price at booking.** Visit reasons carry a duration and a procedure
+code only. Charm displayed the charge. The cash-price block on the website is therefore
+the only place a patient sees prices before booking — which is exactly what Carol wants:
+*"Tebra already took care of the payment. All you have to do is make it transparent on the
+website."* **The website must never take payment.**
+
+---
+
+## 9. 🔴 TWO TRAPS THAT BIT US — read before any deploy
+
+### 9.1 The `.htaccess` 7-day asset cache
+
+`.htaccess` sets **`max-age=604800` (7 days) on js and css**, but **`max-age=0` on
+index.html**. Upload new files alone and returning visitors get the **new HTML with the old
+JavaScript**. That is exactly what happened on 31 Aug: Medicare missing from the insurance
+list, and the Book button still opening **CharmHealth**, on a page that said "Secure
+scheduling by Tebra".
+
+**A Cloudflare purge does not fix this.** The stale copy is in each visitor's browser, not
+at the edge.
+
+**The fix, now in place:** assets are requested with a version query —
+`styles.css?v=20260918`, `script.js?v=20260918`, `clinic-config.js?v=20260918` — from both
+`index.html` and `policies.html`. Since the HTML itself is never cached, every visitor gets
+a URL their browser has never seen.
+
+> **BUMP `?v=` ON EVERY DEPLOY THAT CHANGES JS OR CSS.** Current value: `20260918`.
+
+### 9.2 `[hidden]` did not hide — two dead links were live for 18 days
+
+The `hidden` attribute is only `display:none` from the *user-agent* stylesheet, and it
+loses to any author rule. `.nav__portal{display:flex}` and `.footer__col a{display:block}`
+both beat it. So `script.js` set the attribute and **the links kept rendering** — the
+homepage nav "Patient Portal" and the footer "Patient Portal sign-in", both pointing at
+`href="#"`, live from 31 Aug to 18 Sep.
+
+**Fixed at the root** in `styles.css`:
+
+```css
+[hidden]{display:none !important}
+```
+
+**The lesson, which matters more than the bug:** the 31 Aug check counted elements *without*
+the `hidden` attribute, got zero, and passed. It was measuring the attribute, not whether
+anything rendered. **Verify visibility by computed `display` and bounding box, never by the
+presence of an attribute or a class.**
+
+---
+
+## 10. Deploying — the procedure that works
+
+Production is Network Solutions and does **not** auto-deploy. GitHub and Netlify are not
+the live site.
+
+### 10.1 Getting into the File Manager
+
+The direct URL `11fb659.netsolhost.com/filemanager/index.php?p=htdocs` returns **401 —
+session ended**, even when logged into Network Solutions. It needs a fresh SSO handoff:
+
+> Network Solutions → **Hosting** (left nav) → hosting-details page → **File Manager**
+
+That click mints the session; the direct URL then works in any tab for a while. A human has
+to do this click — it cannot be driven from the account-manager page directly.
+
+### 10.2 Uploading and swapping
+
+Tiny File Manager **never overwrites**. An upload of `x.html` lands as
+`x_YYMMDDHHMMSS.html`. So for each file:
+
+1. Upload everything at once (the file input, not the dropzone click).
+2. Rename the live file → `name_prev_YYYYMMDD.ext.bak`
+3. Rename the timestamped upload → the real name
+
+The rename UI is a form `#renameDailog` with fields `rename_from`, `rename_to` and a CSRF
+`token`. **Setting both values and submitting that form directly is far more reliable than
+clicking**, especially since Chrome-extension screenshots time out on this project.
+
+Old versions are kept as `.bak`; `.htaccess` returns 403 for `*.bak|orig|old|log` so they
+are neither readable nor indexable.
+
+### 10.3 ⚠️ NEVER deploy `index.html` or `styles.css` straight from the repo
+
+They carry the **DRAFT "Our Team" section** (§4n/§4p) with bracketed placeholder bio text —
+*"[DRAFT — replace with Carol's real bio…]"* — which must not reach a live medical clinic
+homepage. It nearly did on 31 Aug.
+
+Build from **`.deploy/`** (gitignored), which strips the section and its two `#team` nav
+links. `policies.html` has no draft content, so it deploys straight from the repo.
+
+### 10.4 Cloudflare
+
+Only needed when the HTML itself must change immediately, which it rarely does since
+index.html is `max-age=0` and Cloudflare reports `DYNAMIC` for it. The asset-version bump
+in §9.1 is the real mechanism. Cloudflare login is Google SSO on `gazzyjuruj@gmail.com`.
+
+---
+
+## 11. The privacy notice — attorney-reviewed, live 18 Sep 2026
+
+Carol's lawyer's document arrived 18 Sep as
+`consent and disclaimers/NOTICE OF PRIVACY PRACTICES (HIPAA) (2) (4).pdf`
+(that folder is **gitignored** — client legal PDFs stay out of the repo).
+
+The `#privacy` section of `policies.html` is **transcribed from it, not reworded**, so the
+page can be diffed against the document. Every sentence was machine-checked as present.
+
+This closed a compliance flag open since August: the old notice was our own paraphrase with
+a placeholder effective date of **1 March 2023**. It is now the real one: **1 August 2026**.
+
+New material her lawyer added: substance-use-disorder records (42 CFR Part 2); a "Your
+choices" section; an explicit *"does not sell your health information"*; the statutory
+specifics under Your Rights (30 days for access, 60 for an amendment denial, six-year
+accounting, one free per 12 months, the out-of-pocket restriction right, personal
+representatives); the full HHS Office for Civil Rights address and phone; and an "Other
+notice and information for patients" block that adds two commitments the site had never
+made — **controlled substances are not prescribed via telehealth**, and the patient must be
+physically located in a state where the provider is licensed.
+
+### 11.1 ⚠️ ONE DELIBERATE DEVIATION FROM THE PDF
+
+| | |
+|---|---|
+| PDF says | "Appointment fees are due **at the time of booking** unless other arrangements have been made." |
+| Site says | "Appointment fees are due **before service** unless other arrangements have been made." |
+
+Changed on Carol's express instruction, 18 Sep 2026: *"payment is due before service not at
+time of booking. Tebra is built a little differently."* The PDF wording promised something
+the system does not do — Tebra takes nothing at booking, a request arrives tentative and is
+invoiced separately.
+
+There is a comment above the section in `policies.html` recording this. **Do not "fix" it
+back by diffing against the PDF.**
+
+---
+
+## 12. Open items — carried into the next session
+
+| Item | Owner | Note |
+|---|---|---|
+| 🔴 **Address mismatch, NEW** | Carol | The live booking widget shows **"lewisville, TX 75057"**. The website says **1301 Justin Rd, Lewisville, TX 75077** in four places (contact block, map embed, both footers). `75057` is the zip of the old *541 W Main St* address. Ask which is current; if she has moved, four places need updating. |
+| 🔴 **Tebra's copy of the privacy notice** | Carol | Patient Intake still holds the **superseded** notice. That is the version patients actually sign into their medical record — the website copy is only informational. Only she can replace it. |
+| 🔴 **Attorney PDF still says "at booking"** | Carol | Should be reissued to match §11.1, or the document of record disagrees with the site. |
+| Financial Policy wording | Carol | Still says "at the time services are rendered" / "at the time of the visit", vs her "before service" ruling. Not a flat contradiction, but a two-line change if she wants one rule stated consistently. |
+| "Our Team" section | Carol | Still placeholder. Needs her real bio, then re-add and **bump `?v=`**. |
+| Tebra provider profile | Carol | Still no photo, no bio, **no insurances added in Tebra** (the website lists 8). Her Care Connect profile is Published and indexable while nearly empty. |
+| Tebra address formatting | Carol | Service location printed the suite twice — `1301 Justin Rd # 201-5035, 201-5035` — on her public profile. Needs admin. |
+| Visit reasons | Carol | Still the Charm-era set. No "Simple Prescription Refill", no "Weight Management Follow-up", so patients book against reasons that don't match published prices. |
+| Tebra Patient Portal | Carol / us | Not activated, or hidden from Office Staff. `TEBRA_PORTAL_URL` is `""`, so all five portal links auto-hide. **Paste a URL there and they all come back in one edit** — including the policies-page one, which has its own small inline script for this. |
+
+---
+
+## 13. Environment gotchas
+
+- **Chrome-extension screenshots time out** on this project. The desktop app's built-in
+  browser pane works, though it throws `UnknownVizError` intermittently — retry once, then
+  fall back to text extraction. Headless Chromium in the cloud container is the most
+  reliable way to verify a page.
+- **The extension's `javascript_tool` blocks any return value containing a query string**
+  ("Cookie/query string data"). Return booleans or derived values instead, or ask the user
+  to copy the value out.
+- **git through the folder bridge cannot delete its own lock files.** On
+  `index.lock: File exists`, `mv` them into `.git/_stale/`. Worse: `git add` leaves a lock
+  that makes a chained `git commit` fail, so **run add and commit as separate calls**.
+- **A failed `git checkout` followed by `git merge <branch>` reports "Already up to date"
+  and silently does nothing.** This ate two merge attempts. Always verify with
+  `git log --oneline -1 main`.
+- **The bridge has no GitHub credentials** — pushes must run from PowerShell.
+- **PowerShell 5 does not support `&&`.** Semicolons chain but run regardless of failure,
+  which is how the silent merge failure above got missed.
+- **`git status` from the bridge shows every file modified.** Files on disk are CRLF
+  (Windows checkout), repo blobs are LF. Not drift — `git diff --ignore-all-space` is empty
+  and Windows git shows a clean tree. Ignore it.
+- **Carol edits Tebra settings directly and does not always say so.** Re-read the account
+  before assuming an earlier reading still holds.
