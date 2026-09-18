@@ -35,6 +35,12 @@
 }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* The hidden attribute must win. Component rules like .nav__portal{display:flex}
+   and .footer__col a{display:block} beat the UA stylesheet's [hidden]{display:none},
+   which left dead "Patient Portal" links visible on the live site after the
+   CharmHealth portal was retired. Anything marked hidden stays hidden. */
+[hidden]{display:none !important}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;overflow-x:hidden}
 body{
   font-family:var(--body);color:var(--ink);background:var(--bone);
