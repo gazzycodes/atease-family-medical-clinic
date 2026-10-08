@@ -42,17 +42,6 @@
     { t: "Mental Health", d: "Anxiety, depression, stress & insomnia", i: "mind" },
   ];
 
-  const insurers = [
-    { n: "BCBS of Texas", a: "BC" },
-    { n: "United Healthcare", a: "UH" },
-    { n: "Humana", a: "Hu" },
-    { n: "Multiplan", a: "MP" },
-    { n: "Oscar", a: "Os" },
-    { n: "Aetna", a: "Ae" },
-    { n: "Amerigroup", a: "Ag" },
-    { n: "Medicare", a: "Mc" },
-  ];
-
   /* ---------- Render services ---------- */
   const grid = document.getElementById("servicesGrid");
   if (grid) {
@@ -69,20 +58,8 @@
     }).join("");
   }
 
-  /* ---------- Render insurers ---------- */
-  const list = document.getElementById("insuranceList");
-  if (list) {
-    const check = '<span class="ins-check"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9 16.2l-3.5-3.5L4 14.2 9 19l11-11-1.5-1.5z"/></svg></span>';
-    list.innerHTML = insurers.map(function (o, n) {
-      return (
-        '<div class="ins-chip" style="transition-delay:' + (n % 5) * 45 + 'ms">' +
-          '<span class="ins-mono">' + o.a + '</span>' +
-          '<span class="ins-name">' + o.n + '</span>' +
-          check +
-        '</div>'
-      );
-    }).join("");
-  }
+  /* The insurer list and its renderer were removed in Oct 2026 when the
+     practice went cash pay only. See the #cash-pay section in index.html. */
 
   /* ---------- Nav scroll state ---------- */
   const nav = document.getElementById("nav");
